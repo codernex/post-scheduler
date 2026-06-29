@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
-    ".": "./src/client/index.ts"
+    ".": "./src/client/index.ts",
+    "./client": "./src/client/client.gen.ts"
   },
   "scripts": {
     "generate": "openapi-ts"
