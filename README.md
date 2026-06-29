@@ -59,7 +59,7 @@ post-scheduler/
 ### 1. Clone the repository
 
 ```bash
-git clone <repo-url>
+git clone git@github.com:codernex/post-scheduler.git
 cd post-scheduler
 ```
 
