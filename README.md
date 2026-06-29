@@ -86,6 +86,8 @@ Create a `.env` file in `apps/backend/`:
 DATABASE_URL="postgresql+asyncpg://<user>:<password>@127.0.0.1:5432/scheduler"
 LINKEDIN_CLIENT_ID="your_linkedin_client_id"
 LINKEDIN_CLIENT_SECRET="your_linkedin_client_secret"
+LINKEDIN_REDIRECT_URI="http://localhost:8081/api/v1/social-media/connect/linkedin/callback"
+JWT_SECRET="your_secure_jwt_secret_key"
 ```
 
 ### 5. Run database migrations
@@ -148,6 +150,15 @@ The backend is served at `http://localhost:8081` and exposes interactive docs at
 |--------|------------|----------------------|
 | POST   | `/signup`  | Register a new user  |
 | POST   | `/login`   | Authenticate a user  |
+
+### Social Media Endpoints (`/api/v1/social-media`)
+
+| Method | Endpoint                    | Description                                                   |
+|--------|-----------------------------|---------------------------------------------------------------|
+| GET    | `/connect/linkedin`         | Initiate LinkedIn integration connection (redirects to OAuth)  |
+| GET    | `/connect/linkedin/callback`| LinkedIn OAuth callback (handles integration token persistence)|
+| GET    | `/status`                   | Get connected/disconnected integration status of platforms    |
+| DELETE | `/disconnect/{platform}`    | Disconnect a connected social media platform                  |
 
 ---
 
