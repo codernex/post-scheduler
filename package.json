@@ -3,12 +3,16 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev:frontend": "pnpm --filter web dev",
+    "dev:backend": "cd apps/backend && . .venv/bin/activate && make run",
+    "generate": "npx turbo run generate",
+    "dev": "concurrently \"pnpm dev:frontend\" \"pnpm dev:backend\" \"pnpm generate\"",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
+    "concurrently": "^10.0.3",
     "prettier": "^3.7.4",
     "turbo": "^2.10.0",
     "typescript": "5.9.2"

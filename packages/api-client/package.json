@@ -1,0 +1,18 @@
+{
+  "name": "@repo/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/client/index.ts"
+  },
+  "scripts": {
+    "generate": "openapi-ts"
+  },
+  "dependencies": {
+    "@hey-api/client-fetch": "latest"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "latest",
+    "typescript": "latest"
+  }
+}

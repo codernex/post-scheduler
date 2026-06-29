@@ -1,159 +1,217 @@
-# Turborepo starter
+# 📅 Post Scheduler
 
-This Turborepo starter is maintained by the Turborepo core team.
+A full-stack **social media post scheduling** platform built as a monorepo. Users can connect their social media accounts and schedule posts to be published automatically.
 
-## Using this example
+---
 
-Run the following command:
+## 🏗️ Architecture
 
-```sh
-npx create-turbo@latest
+This project is a **Turborepo monorepo** powered by `pnpm` workspaces, containing a Next.js frontend, a FastAPI backend, and a shared auto-generated API client.
+
+```
+post-scheduler/
+├── apps/
+│   ├── web/          # Next.js 16 frontend (React 19, Tailwind CSS v4, shadcn/ui)
+│   └── backend/      # FastAPI backend (Python 3.13, SQLAlchemy, Alembic)
+└── packages/
+    ├── api-client/         # Auto-generated TypeScript API client (@hey-api/openapi-ts)
+    ├── eslint-config/      # Shared ESLint configuration
+    └── typescript-config/  # Shared TypeScript configuration
 ```
 
-## What's inside?
+---
 
-This Turborepo includes the following packages/apps:
+## ✨ Features
 
-### Apps and Packages
+- 🔐 **User Authentication** — Signup & login with hashed passwords (`bcrypt`)
+- 🌐 **Social Media Integration** — LinkedIn OAuth integration (Facebook, LinkedIn supported)
+- 🗓️ **Post Scheduling** — Schedule posts with recurrence support
+- 🔄 **Auto-Generated API Client** — TypeScript client generated from the FastAPI OpenAPI schema
+- 🛡️ **Async Backend** — Fully async FastAPI + SQLAlchemy with PostgreSQL via `asyncpg`
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+---
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## 🛠️ Tech Stack
 
-### Utilities
+| Layer        | Technology                                         |
+|--------------|----------------------------------------------------|
+| Frontend     | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui  |
+| Backend      | FastAPI, SQLAlchemy 2, Alembic, Uvicorn            |
+| Database     | PostgreSQL (async via `asyncpg`)                   |
+| API Client   | `@hey-api/openapi-ts` (auto-generated from OpenAPI)|
+| Monorepo     | Turborepo, pnpm workspaces                         |
+| Language     | TypeScript 5.9 (frontend), Python 3.13 (backend)  |
 
-This Turborepo has some additional tools already setup for you:
+---
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+## 📋 Prerequisites
 
-### Build
+- [Node.js](https://nodejs.org/) >= 18
+- [pnpm](https://pnpm.io/) 9.x — `npm install -g pnpm@9`
+- [Python](https://python.org/) >= 3.13
+- [uv](https://docs.astral.sh/uv/) — fast Python package manager
+- [PostgreSQL](https://www.postgresql.org/) running locally
 
-To build all apps and packages, run the following command:
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+## 🚀 Getting Started
 
-```sh
-cd my-turborepo
-turbo build
+### 1. Clone the repository
+
+```bash
+git clone <repo-url>
+cd post-scheduler
 ```
 
-Without global `turbo`, use your package manager:
+### 2. Install JavaScript dependencies
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+```bash
+pnpm install
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### 3. Set up the Python backend
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo build --filter=docs
+```bash
+cd apps/backend
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv pip install -r requirements.txt
 ```
 
-Without global `turbo`:
+### 4. Configure environment variables
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+Create a `.env` file in `apps/backend/`:
+
+```env
+DATABASE_URL="postgresql+asyncpg://<user>:<password>@127.0.0.1:5432/scheduler"
+LINKEDIN_CLIENT_ID="your_linkedin_client_id"
+LINKEDIN_CLIENT_SECRET="your_linkedin_client_secret"
 ```
 
-### Develop
+### 5. Run database migrations
 
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
+```bash
+# From apps/backend/ with the venv activated
+alembic upgrade head
 ```
 
-Without global `turbo`, use your package manager:
+### 6. Seed the database
 
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
+Populates the `social_media` table with initial platforms (Facebook, LinkedIn):
+
+```bash
+# From apps/backend/ with the venv activated
+make seed
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+## 💻 Development
 
-```sh
-turbo dev --filter=web
+Run all services concurrently from the repo root:
+
+```bash
+pnpm dev
 ```
 
-Without global `turbo`:
+This starts:
+- **Frontend** at `http://localhost:3000` (Next.js dev server)
+- **Backend** at `http://localhost:8081` (Uvicorn with `--reload`)
+- **API client generator** watching for OpenAPI schema changes
 
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+To run services individually:
+
+```bash
+# Frontend only
+pnpm dev:frontend
+
+# Backend only
+pnpm dev:backend
+
+# Regenerate the TypeScript API client (backend must be running)
+pnpm generate
 ```
 
-### Remote Caching
+---
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+## 🔌 API Overview
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+The backend is served at `http://localhost:8081` and exposes interactive docs at:
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+- **Swagger UI**: `http://localhost:8081/docs`
+- **ReDoc**: `http://localhost:8081/redoc`
+- **OpenAPI JSON**: `http://localhost:8081/openapi.json`
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+### Auth Endpoints (`/api/v1/auth`)
 
-```sh
-cd my-turborepo
-turbo login
+| Method | Endpoint   | Description          |
+|--------|------------|----------------------|
+| POST   | `/signup`  | Register a new user  |
+| POST   | `/login`   | Authenticate a user  |
+
+---
+
+## 📦 Packages
+
+### `@repo/api-client`
+
+A TypeScript API client auto-generated from the FastAPI OpenAPI schema using [`@hey-api/openapi-ts`](https://heyapi.dev/). It is consumed directly by the `web` app via a pnpm workspace alias.
+
+To regenerate after backend changes (backend must be running):
+
+```bash
+pnpm generate
 ```
 
-Without global `turbo`, use your package manager:
+### `@repo/eslint-config` & `@repo/typescript-config`
 
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
+Shared linting and TypeScript configurations used across all apps and packages in the monorepo.
+
+---
+
+## 🗄️ Database Schema
+
+| Table             | Description                                          |
+|-------------------|------------------------------------------------------|
+| `users`           | Registered users with hashed passwords              |
+| `social_media`    | Supported social platforms (Facebook, LinkedIn, …)  |
+| `user_social_media` | Many-to-many: users ↔ connected accounts         |
+| `scheduler`       | Scheduled posts with recurrence and status tracking |
+| `api_tokens`      | OAuth tokens for social media integrations          |
+
+Migrations are managed with [Alembic](https://alembic.sqlalchemy.org/):
+
+```bash
+# Generate a new migration
+alembic revision --autogenerate -m "description"
+
+# Apply migrations
+alembic upgrade head
+
+# Roll back one step
+alembic downgrade -1
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+---
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+## 🔧 Available Scripts
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+### Root (from `post-scheduler/`)
 
-```sh
-turbo link
-```
+| Command              | Description                                      |
+|----------------------|--------------------------------------------------|
+| `pnpm dev`           | Start all services concurrently                  |
+| `pnpm dev:frontend`  | Start the Next.js dev server only                |
+| `pnpm dev:backend`   | Start the FastAPI Uvicorn server only            |
+| `pnpm generate`      | Regenerate the TypeScript API client             |
+| `pnpm build`         | Build all apps via Turborepo                     |
+| `pnpm lint`          | Lint all packages                                |
+| `pnpm check-types`   | Type-check all packages                          |
+| `pnpm format`        | Format all `.ts`, `.tsx`, and `.md` files        |
 
-Without global `turbo`:
+### Backend (from `apps/backend/`)
 
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+| Command      | Description                                |
+|--------------|--------------------------------------------|
+| `make run`   | Start the Uvicorn dev server on port 8081  |
+| `make seed`  | Seed the database with initial data        |
