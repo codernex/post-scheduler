@@ -18,3 +18,8 @@ class CreateUserResponse(BaseModel):
 class LoginPayload(BaseModel):
     email: str
     password: str
+
+class LoginResponse(BaseModel):
+    access_token: str
+    user:CreateUserResponse
+    token_type:str="Bearer"

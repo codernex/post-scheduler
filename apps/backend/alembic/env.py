@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from src.core import Base  # adjust import
-from src.models import User, SocialMedia,Scheduler
+from src.models import User, SocialMedia, Scheduler, ApiToken
 
 config = context.config
 

@@ -14,6 +14,9 @@ class User(Base):
     social_media: Mapped[list["SocialMedia"]] = relationship(
         secondary=user_social_media_table, back_populates="users"
     )
+    api_tokens: Mapped[list["ApiToken"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now, nullable=False
     )

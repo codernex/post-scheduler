@@ -2,8 +2,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import bcrypt
-
-from src.dto import CreateUserPayload
+from src.utils import generate_jwt
+from src.dto import CreateUserPayload,LoginResponse,CreateUserResponse
 from src.models import User
 
 
@@ -31,7 +31,7 @@ class UserService:
         )
         return result.scalar_one_or_none()
 
-    async def login(self, email: str, password: str) -> User:
+    async def login(self, email: str, password: str) -> LoginResponse:
         # FIXED: Reused your find_user_by_email method to fetch the user cleanly
         user = await self.find_user_by_email(email)
 
@@ -48,7 +48,18 @@ class UserService:
                 detail="Incorrect password"
             )
 
-        return user
+        access_token = generate_jwt(user)
+        print(user)
+        return LoginResponse(
+            access_token=access_token,
+            user=CreateUserResponse(
+                id=user.id,
+                email=user.email,
+                username=user.username,
+                created_at=user.created_at
+            ),
+            token_type="Bearer"
+        )
 
     @staticmethod
     def _hash_password(plain_password: str) -> str:

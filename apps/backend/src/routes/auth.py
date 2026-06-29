@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.params import Depends
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.dto import CreateUserPayload, CreateUserResponse, LoginPayload
+from src.dto import CreateUserPayload, CreateUserResponse, LoginPayload, LoginResponse
 from src.core import get_db
 from src.services.user import UserService
 
@@ -41,8 +41,14 @@ async def signup(payload: CreateUserPayload, db: AsyncSession = Depends(get_db))
     return user
 
 
-@auth_router.post("/login", response_model=CreateUserResponse, status_code=200)
+@auth_router.post("/login", response_model=LoginResponse, status_code=200)
 async def login(payload: LoginPayload, db: AsyncSession = Depends(get_db)):
     user_service = UserService(db)
     user = await user_service.login(email=payload.email, password=payload.password)
     return user
+
+# @auth_router.get("/me",response_model=CreateUserResponse,status_code=200)
+# async def me(db:AsyncSession=Depends(get_db),current_user:User=Depends()):
+#     user_service=UserService(db)
+    
+#     return user
