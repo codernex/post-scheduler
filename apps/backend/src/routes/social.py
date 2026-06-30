@@ -5,11 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime, timedelta
 
-import src.utils as utils
-from src.core.database import get_db
-from src.core.dependencies import get_current_user
-from src.models import User, ApiToken, SocialMedia
-from src.dto import SocialPlatformStatus
+import  utils as utils
+from  core.database import get_db
+from  core.dependencies import get_current_user
+from  models import User, ApiToken, SocialMedia
+from  dto import SocialPlatformStatus
 
 social_router = APIRouter(
     prefix="/social-media",

@@ -1,6 +1,6 @@
-from src.core import Base
+from core import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.models.SocialMedia import user_social_media_table
+from models.SocialMedia import user_social_media_table
 from sqlalchemy import String, DateTime
 from datetime import datetime
 
@@ -20,3 +20,4 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now, nullable=False
     )
+    timezone: Mapped[str] = mapped_column(String, default="UTC", nullable=True)

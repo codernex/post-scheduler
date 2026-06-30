@@ -16,8 +16,8 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # 3. Your project imports
-from src.core.database import engine  # Your AsyncEngine
-from src.models import SocialMedia
+from  core.database import engine  # Your AsyncEngine
+from  models import SocialMedia
 
 social_medias = [
     {"name": "Facebook", "url": "https://facebook.com"},

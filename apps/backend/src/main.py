@@ -1,8 +1,9 @@
-from fastapi import FastAPI,APIRouter
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.routes.auth import auth_router
-from src.routes.social import social_router
+from routes.scheudler import scheduler_router
+from routes.auth import auth_router
+from routes.social import social_router
 
 app = FastAPI(title="Social media post scheduler", version="1.0")
 
@@ -22,5 +23,6 @@ v1_router = APIRouter(prefix="/api/v1")
 
 v1_router.include_router(auth_router)
 v1_router.include_router(social_router)
+v1_router.include_router(scheduler_router)
 
 app.include_router(v1_router)

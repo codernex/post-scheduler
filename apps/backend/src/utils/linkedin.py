@@ -1,10 +1,11 @@
 import os
-import src.core as core
+import core as core
 from requests_oauthlib import OAuth2Session
 import requests
 
 # Enable insecure transport for local development (only if HTTP redirect URIs are used)
-if core.settings.LINKEDIN_REDIRECT_URI.startswith("http://localhost") or core.settings.LINKEDIN_REDIRECT_URI.startswith("http://127.0.0.1"):
+if core.settings.LINKEDIN_REDIRECT_URI.startswith("http://localhost") or core.settings.LINKEDIN_REDIRECT_URI.startswith(
+        "http://127.0.0.1"):
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 SCOPES = ['openid', 'profile', 'email', 'w_member_social']
@@ -14,12 +15,13 @@ USERINFO_URL = 'https://api.linkedin.com/v2/userinfo'
 POSTS_URL = 'https://api.linkedin.com/rest/posts'
 LINKEDIN_VERSION = '202606'  # API Version Header
 
+
 class LinkedInClient:
     def __init__(
-        self,
-        client_id: str | None = None,
-        client_secret: str | None = None,
-        redirect_uri: str | None = None,
+            self,
+            client_id: str | None = None,
+            client_secret: str | None = None,
+            redirect_uri: str | None = None,
     ):
         self.client_id = client_id or core.settings.LINKEDIN_CLIENT_ID
         self.client_secret = client_secret or core.settings.LINKEDIN_CLIENT_SECRET

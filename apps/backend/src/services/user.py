@@ -2,9 +2,9 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import bcrypt
-from src.utils import generate_jwt
-from src.dto import CreateUserPayload,LoginResponse,CreateUserResponse
-from src.models import User
+from utils import generate_jwt
+from dto import CreateUserPayload, LoginResponse, CreateUserResponse
+from models import User
 
 
 class UserService:
@@ -49,7 +49,6 @@ class UserService:
             )
 
         access_token = generate_jwt(user)
-        print(user)
         return LoginResponse(
             access_token=access_token,
             user=CreateUserResponse(

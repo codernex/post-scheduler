@@ -1,8 +1,9 @@
 from datetime import datetime
 from sqlalchemy import Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.core.database import Base
-from src.utils.crypto import encrypt_data, decrypt_data
+from core.database import Base
+from utils.crypto import encrypt_data, decrypt_data
+
 
 class ApiToken(Base):
     __tablename__ = "api_tokens"
@@ -13,7 +14,7 @@ class ApiToken(Base):
 
     access_token_encrypted: Mapped[str] = mapped_column(String(2000), nullable=False)
     refresh_token_encrypted: Mapped[str] = mapped_column(String(2000), nullable=True)
-    
+
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     token_type: Mapped[str] = mapped_column(String(50), nullable=True)
     scopes: Mapped[str] = mapped_column(String(500), nullable=True)

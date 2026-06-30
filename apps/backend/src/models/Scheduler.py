@@ -1,12 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, DateTime, Enum, Index, text, String
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
-from src.core import Base
-import enum
-
-
-class Status(enum.Enum):
-    ACTIVE = 'active'
+from core import Base
 
 
 class Scheduler(Base):
@@ -28,5 +23,6 @@ class Scheduler(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     recurrence: Mapped[int] = mapped_column(Integer, default=1)
-    scheduled_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, )
     status: Mapped[str] = mapped_column(String(20))
+    user_timezone: Mapped[str] = mapped_column(String(50))
