@@ -35,7 +35,7 @@ export default function DashboardLayout({
 
   const navItems = [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Schedules", href: "/dashboard/schedules", icon: CalendarDays, disabled: true },
+    { name: "Schedules", href: "/dashboard/schedules", icon: CalendarDays, disabled: false },
     { name: "Platforms", href: "/dashboard/platforms", icon: Share2, disabled: true },
     { name: "Settings", href: "/dashboard/settings", icon: Settings, disabled: true },
   ];

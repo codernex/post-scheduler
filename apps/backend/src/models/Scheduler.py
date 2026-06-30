@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, ForeignKey, DateTime, Enum, Index, text, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from core import Base
 
@@ -23,6 +23,11 @@ class Scheduler(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     recurrence: Mapped[int] = mapped_column(Integer, default=1)
+    recurrence_unit: Mapped[str] = mapped_column(String(20), default="days", server_default="days")
     scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, )
     status: Mapped[str] = mapped_column(String(20))
     user_timezone: Mapped[str] = mapped_column(String(50))
+    prompt: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+
+    logs: Mapped[list["SchedulerLog"]] = relationship("SchedulerLog", back_populates="scheduler", cascade="all, delete-orphan")
+
