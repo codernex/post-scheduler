@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { DateTimePicker } from "@/components/ui/datetime-picker";
 import {
   Dialog,
   DialogContent,
@@ -10,18 +9,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import {
-  createScheduleApiV1SchedulerPost,
   deleteScheduleApiV1SchedulerScheduleIdDelete,
   getScheduleApiV1SchedulerGet,
   getScheduleLogsApiV1SchedulerScheduleIdLogsGet,
@@ -29,10 +19,8 @@ import {
 } from "@repo/api-client";
 import { format } from "date-fns";
 import {
-  AlertCircle,
   Calendar as CalendarIcon,
   CheckCircle,
-  CheckCircle2,
   Clock,
   Layers,
   ListTodo,
@@ -42,28 +30,21 @@ import {
   Trash2,
   XCircle
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import React, { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { CreateScheduleDialog } from "@/components/create-schedule-dialog";
 
 type FilterTab = "ALL" | "SCHEDULED" | "PUBLISHED" | "FAILED";
 
 function SchedulesContent() {
-  const router = useRouter();
   const [platforms, setPlatforms] = useState<any[]>([]);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Creation Dialog & Form state
+  // Creation Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedPlatformId, setSelectedPlatformId] = useState<string>("");
-  const [scheduledAt, setScheduledAt] = useState<Date | undefined>(undefined);
-  const [recurrence, setRecurrence] = useState<number>(1);
-  const [recurrenceUnit, setRecurrenceUnit] = useState<string>("days");
-  const [prompt, setPrompt] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
 
   // Logs Dialog state
   const [isLogsOpen, setIsLogsOpen] = useState(false);
@@ -96,62 +77,6 @@ function SchedulesContent() {
   useEffect(() => {
     fetchStatusAndSchedules();
   }, []);
-
-  const handleCreateSchedule = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPlatformId) {
-      toast.error("Please select a platform.");
-      return;
-    }
-    if (!scheduledAt) {
-      toast.error("Please select a schedule date and time.");
-      return;
-    }
-    if (scheduledAt <= new Date()) {
-      toast.error("Scheduled time must be in the future.");
-      return;
-    }
-    if (recurrence < 1) {
-      toast.error("Recurrence must be at least 1.");
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const naiveDateTimeStr = format(scheduledAt, "yyyy-MM-dd'T'HH:mm:ss");
-
-      const response = await createScheduleApiV1SchedulerPost({
-        body: {
-          social_media_id: parseInt(selectedPlatformId),
-          scheduled_at: naiveDateTimeStr,
-          recurrence: recurrence,
-          recurrence_unit: recurrenceUnit,
-          prompt: prompt.trim() === "" ? undefined : prompt.trim()
-        }
-      });
-
-      if (response.error) {
-        const detail = (response.error as any)?.detail || "Failed to create schedule";
-        toast.error(typeof detail === "string" ? detail : JSON.stringify(detail));
-      } else {
-        toast.success("Schedule created successfully!", {
-          icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
-        });
-        setSelectedPlatformId("");
-        setScheduledAt(undefined);
-        setRecurrence(1);
-        setRecurrenceUnit("days");
-        setPrompt("");
-        setIsDialogOpen(false);
-        fetchStatusAndSchedules();
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("An unexpected error occurred while scheduling.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleDeleteSchedule = async (scheduleId: number) => {
     if (!confirm("Are you sure you want to remove this schedule? This action cannot be undone.")) return;
@@ -258,100 +183,20 @@ function SchedulesContent() {
           </p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white gap-2 font-medium shadow-lg shadow-indigo-500/15 h-10 px-4 cursor-pointer">
-              <Plus className="w-4 h-4" />
-              <span>New Schedule</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>New Schedule</DialogTitle>
-              <DialogDescription>
-                Plan your post recurrence, timezone and AI prompt instructions.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateSchedule} className="space-y-4 py-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-400">Social Account</label>
-                {connectedPlatforms.length === 0 ? (
-                  <div className="flex items-center gap-2 p-3 text-sm rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>No connected accounts. Please connect a platform first.</span>
-                  </div>
-                ) : (
-                  <Select value={selectedPlatformId} onValueChange={setSelectedPlatformId}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select connected platform" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {connectedPlatforms.map((p) => (
-                        <SelectItem key={p.id} value={p.id.toString()}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
+        <Button
+          onClick={() => setIsDialogOpen(true)}
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white gap-2 font-medium shadow-lg shadow-indigo-500/15 h-10 px-4 cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span>New Schedule</span>
+        </Button>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-400">Prompt (optional)</label>
-                <textarea
-                  placeholder="What would you like this post to be about? LLM will use this to write the post..."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  className="w-full min-h-[80px] rounded-md border border-slate-800 bg-slate-950/50 p-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-600 outline-none"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-400">Schedule Date & Time</label>
-                <DateTimePicker 
-                  value={scheduledAt} 
-                  onChange={setScheduledAt} 
-                  placeholder="Select date & time"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-400">Recurrence</label>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    min="1"
-                    value={recurrence}
-                    onChange={(e) => setRecurrence(parseInt(e.target.value) || 1)}
-                    className="bg-slate-900/50 border-slate-800 text-slate-200 flex-1"
-                  />
-                  <Select value={recurrenceUnit} onValueChange={setRecurrenceUnit}>
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="Unit" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="days">Days</SelectItem>
-                      <SelectItem value="hours">Hours</SelectItem>
-                      <SelectItem value="minutes">Minutes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <span className="text-[10px] text-slate-500">Post will auto-schedule every {recurrence} {recurrenceUnit}.</span>
-              </div>
-
-              <DialogFooter className="pt-4">
-                <Button
-                  type="submit"
-                  disabled={submitting || connectedPlatforms.length === 0}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white w-full cursor-pointer h-10 flex items-center justify-center gap-2"
-                >
-                  {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Schedule Post</span>
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <CreateScheduleDialog
+          platforms={connectedPlatforms}
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          onScheduleCreated={fetchStatusAndSchedules}
+        />
       </div>
 
       {/* Main Table Card */}
@@ -412,6 +257,7 @@ function SchedulesContent() {
                     <th className="p-4 pl-6">ID</th>
                     <th className="p-4">Platform</th>
                     <th className="p-4">Recurrence</th>
+                    <th className="p-4">Progress</th>
                     <th className="p-4">Scheduled Date</th>
                     <th className="p-4">Created Date</th>
                     <th className="p-4">Status</th>
@@ -444,8 +290,29 @@ function SchedulesContent() {
                             </p>
                           )}
                         </td>
-                        <td className="p-4 text-sm text-slate-300">
-                          Every {schedule.recurrence} {schedule.recurrence_unit || "days"}
+                        <td className="p-4 text-sm text-slate-300 whitespace-nowrap">
+                          Every {schedule.recurrence} {schedule.recurrence_unit || "day"}(s)
+                        </td>
+                        <td className="p-4">
+                          {(() => {
+                            const completed = schedule.runs_completed ?? 0;
+                            const total = schedule.max_runs ?? 1;
+                            const pct = Math.round((completed / total) * 100);
+                            return (
+                              <div className="flex flex-col gap-1 min-w-[90px]">
+                                <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                  <span className="font-semibold text-slate-200">{completed}</span>
+                                  <span className="text-slate-500">/ {total} runs</span>
+                                </div>
+                                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 transition-all"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="p-4 text-sm text-slate-300">
                           <div className="font-medium">
