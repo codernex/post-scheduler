@@ -7,7 +7,11 @@ from pydantic import BaseModel, ConfigDict
 class CreateSchedulePayload(BaseModel):
     social_media_id: int
     recurrence: int = 1
-    recurrence_unit: str = "days"
+    recurrence_unit: str = "day"   # 'minute' | 'hour' | 'day'
+    # How many total times this schedule should fire.
+    # e.g. max_runs=10 with recurrence=30, recurrence_unit='minute'
+    # means "post every 30 minutes, 10 times total".
+    max_runs: int = 1
     scheduled_at: datetime
     prompt: str | None = None
 
@@ -17,6 +21,7 @@ class ScheduleStatus(str, Enum):
     SCHEDULED = "SCHEDULED"
     PUBLISHED = "PUBLISHED"
     FAILED = "FAILED"
+    PENDING="PENDING"
     # Add any other statuses you might use (e.g., CANCELED, DRAFT)
 
 
@@ -27,6 +32,8 @@ class ScheduleResponse(BaseModel):
     social_media_id: int
     recurrence: int
     recurrence_unit: str
+    max_runs: int
+    runs_completed: int
     status: ScheduleStatus
 
     # Time and Date fields

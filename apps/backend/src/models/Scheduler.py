@@ -29,7 +29,16 @@ class Scheduler(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
     
     recurrence: Mapped[int] = mapped_column(Integer, default=1)
-    recurrence_unit: Mapped[str] = mapped_column(String(20), default="days", server_default="days")
+    recurrence_unit: Mapped[str] = mapped_column(String(20), default="day", server_default="day")
+
+    # How many total times the user wants this schedule to fire.
+    # e.g. max_runs=5 with recurrence=2, recurrence_unit='hour' means
+    # "run every 2 hours, 5 times total".
+    max_runs: Mapped[int] = mapped_column(Integer, default=1)
+
+    # Tracks how many executions have completed so far.
+    runs_completed: Mapped[int] = mapped_column(Integer, default=0)
+
     scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now)
     
     # Keeps the unique index safe. State is simply active or inactive.

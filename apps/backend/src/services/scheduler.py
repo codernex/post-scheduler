@@ -10,8 +10,9 @@ from dto import CreateSchedulePayload
 
 class SchedulerStatus(enum.Enum):
     SCHEDULED = "SCHEDULED"
-    RUNNING = "RUNNING"
+    PENDING = "PENDING"
     FINISHED = "FINISHED"
+
 
 
 class SchedulerService:
@@ -45,7 +46,7 @@ class SchedulerService:
             scheduled_at=localized_time,
             user_id=user_id,
             user_timezone=user_tz_string,
-            status=SchedulerStatus.SCHEDULED.value
+            status=SchedulerStatus.PENDING.value
         )
 
         self._db.add(schedule)
