@@ -1,5 +1,6 @@
 import enum
 import zoneinfo
+from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
@@ -20,30 +21,42 @@ class SchedulerService:
         self._db = db
 
     async def create_schedule(self, payload: CreateSchedulePayload, user_id: int) -> Scheduler:
-        # 1. Fetch user
-        user = await self._db.get(User, user_id)
+        # The frontend sends a timezone-aware ISO string (e.g. "2026-07-04T11:25:00+06:00").
+        # Pydantic parses it with the correct tzinfo automatically.
 
-        # 2. Extract string safely (handles if user is None AND if timezone is None)
-        user_tz_string = user.timezone if (user and user.timezone) else "UTC"
+        incoming_dt = payload.scheduled_at
 
-        # 3. Create the ZoneInfo object safely
-        try:
-            tz = zoneinfo.ZoneInfo(user_tz_string)
-        except zoneinfo.ZoneInfoNotFoundError:
-            # Fallback to UTC if the database had garbage data (e.g. "Fake/Timezone")
-            tz = zoneinfo.ZoneInfo("UTC")
-            user_tz_string = "UTC"  # Update the string so we save the corrected version
+        # If the frontend somehow sends a naive datetime, fall back to the user's profile TZ
+        if incoming_dt.tzinfo is None:
+            user = await self._db.get(User, user_id)
+            user_tz_string = user.timezone if (user and user.timezone) else "UTC"
+            try:
+                tz = zoneinfo.ZoneInfo(user_tz_string)
+            except zoneinfo.ZoneInfoNotFoundError:
+                tz = zoneinfo.ZoneInfo("UTC")
+                user_tz_string = "UTC"
+            incoming_dt = incoming_dt.replace(tzinfo=tz)
+        else:
+            # Detect IANA timezone name from the offset for display purposes
+            user_tz_string = str(incoming_dt.tzinfo)
+            # If it's a fixed offset (not IANA name), store as UTC±HH:MM
+            if not user_tz_string or user_tz_string.startswith("UTC"):
+                offset = incoming_dt.utcoffset()
+                total_seconds = int(offset.total_seconds())
+                sign = "+" if total_seconds >= 0 else "-"
+                hours, remainder = divmod(abs(total_seconds), 3600)
+                minutes = remainder // 60
+                user_tz_string = f"UTC{sign}{hours:02d}:{minutes:02d}"
 
-        # 4. Localize the time
-        naive_time = payload.scheduled_at.replace(tzinfo=None)
-        localized_time = naive_time.replace(tzinfo=tz)
+        # Convert to UTC for consistent storage
+        utc_time = incoming_dt.astimezone(timezone.utc)
 
-        # 5. Prepare data and save
+        # Prepare data and save
         schedule_data = payload.model_dump(exclude={"scheduled_at"})
 
         schedule = Scheduler(
             **schedule_data,
-            scheduled_at=localized_time,
+            scheduled_at=utc_time,
             user_id=user_id,
             user_timezone=user_tz_string,
             status=SchedulerStatus.PENDING.value

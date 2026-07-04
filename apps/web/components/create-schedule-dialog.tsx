@@ -89,12 +89,13 @@ export function CreateScheduleDialog({
 
     try {
       setSubmitting(true);
-      const naiveDateTimeStr = format(scheduledAt, "yyyy-MM-dd'T'HH:mm:ss");
+      // Include the browser's timezone offset so the backend knows the user's local time
+      const dateTimeWithOffset = format(scheduledAt, "yyyy-MM-dd'T'HH:mm:ssxxx");
 
       const response = await createScheduleApiV1SchedulerPost({
         body: {
           social_media_id: parseInt(selectedPlatformId),
-          scheduled_at: naiveDateTimeStr,
+          scheduled_at: dateTimeWithOffset,
           recurrence: recurrence,
           recurrence_unit: recurrenceUnit,
           max_runs: maxRuns,

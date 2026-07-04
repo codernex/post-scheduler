@@ -319,7 +319,7 @@ function SchedulesContent() {
                             {format(new Date(schedule.scheduled_at), "PPP HH:mm")}
                           </div>
                           <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">
-                            TimeZone: {schedule.user_timezone}
+                            TimeZone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
                           </div>
                         </td>
                         <td className="p-4 text-xs text-slate-500">

@@ -201,6 +201,12 @@ function DashboardContent() {
             <XCircle className="w-3.5 h-3.5" /> Failed
           </span>
         );
+      case "PENDING":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-amber-600/10 text-amber-500 border border-rose-500/20">
+            <XCircle className="w-3.5 h-3.5" /> Pending
+          </span>
+        );
       default:
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
@@ -396,7 +402,7 @@ function DashboardContent() {
                               {format(new Date(schedule.scheduled_at), "PPP HH:mm")}
                             </span>
                             <span className="text-[10px] text-slate-500 uppercase tracking-wider">
-                              ({schedule.user_timezone})
+                              ({Intl.DateTimeFormat().resolvedOptions().timeZone})
                             </span>
                           </div>
                         </div>

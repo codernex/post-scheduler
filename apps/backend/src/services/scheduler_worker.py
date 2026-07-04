@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 
 from sqlalchemy import select
@@ -23,22 +23,20 @@ linkedin_client = utils.LinkedInClient()
 async def get_linkedin_access_token(user_id: int, db: AsyncSession) -> str:
     result = await db.execute(
         select(ApiToken).where(
-            ApiToken.user_id == user_id,
-            ApiToken.platform == "linkedin",
+            ApiToken.user_id == user_id
         )
     )
     api_token = result.scalar_one_or_none()
     if not api_token:
         raise Exception("No LinkedIn API token found for user")
 
-    access_token = utils.decrypt_data(api_token.access_token)
+    access_token = api_token.access_token
     if not access_token:
         raise Exception("Failed to decrypt LinkedIn API token")
 
     if api_token.expires_at < datetime.now():
-        refreshed_tokens = await linkedin_client.refresh_access_token(
-            utils.decrypt_data(api_token.refresh_token)
-        )
+        refreshed_tokens = await linkedin_client.refresh_access_token(api_token.refresh_token
+                                                                      )
         if refreshed_tokens:
             api_token.access_token = refreshed_tokens["access_token"]
             api_token.expires_at = datetime.fromtimestamp(refreshed_tokens["expires_in"])
@@ -102,12 +100,13 @@ async def recover_stuck_executions():
 # Worker 1: Promote due PENDING schedules into the execution queue
 # ---------------------------------------------------------
 async def push_scheduler_to_task_execution():
+    print("[push_scheduler_to_task_execution] Starting")
     async with get_db_context() as db:
         try:
             # 1. Fetch schedules that are due and still PENDING
             result = await db.execute(
                 select(Scheduler).where(
-                    Scheduler.scheduled_at <= datetime.utcnow(),
+                    Scheduler.scheduled_at <= datetime.now(timezone.utc),
                     Scheduler.status == SchedulerStatus.PENDING.value,
                 ).with_for_update(skip_locked=True)
             )
@@ -130,7 +129,7 @@ async def push_scheduler_to_task_execution():
             db.add_all(tasks)
             await db.commit()
 
-            logger.info(f"[worker] Queued {len(tasks)} task(s) at {datetime.now()}")
+            logger.info(f"[worker] Queued {len(tasks)} task(s) at {datetime.now(timezone.utc)}")
 
         except Exception as e:
             logger.error(f"[worker] push_scheduler_to_task_execution failed: {e}")
@@ -142,11 +141,15 @@ async def push_scheduler_to_task_execution():
 # ---------------------------------------------------------
 async def _run_posting_logic(scheduler: Scheduler, db: AsyncSession):
     """Runs the platform-specific posting logic for a scheduler."""
+    print("[_run_posting_logic] Starting")
     if scheduler.social_media_id == 2:  # LinkedIn
         access_token = await get_linkedin_access_token(user_id=scheduler.user_id, db=db)
-        post = f"This is a test post by linkedin scheduler at {datetime.now()}"
+        print("Access Token:::",access_token)
+        post = f"This is a test post by linkedin scheduler at {datetime.now(timezone.utc)}"
         logger.info(f"[worker] LinkedIn post ready — token obtained, content: {post}")
-        # TODO: call linkedin_client.create_post(access_token, post)
+        author =  linkedin_client.get_user_info(access_token)
+        urn = linkedin_client.get_person_urn(author["sub"])
+        linkedin_client.publish_post(access_token,urn,post)
 
 
 # ---------------------------------------------------------
@@ -177,18 +180,28 @@ async def mark_and_increment_schedule(db: AsyncSession, execution: TaskExecution
             recurrence_time = scheduler.recurrence
 
             if recurrence_unit == "minute":
-                scheduler.scheduled_at = datetime.now() + timedelta(minutes=recurrence_time)
+                scheduler.scheduled_at = datetime.now(timezone.utc) + timedelta(minutes=recurrence_time)
             elif recurrence_unit == "hour":
-                scheduler.scheduled_at = datetime.now() + timedelta(hours=recurrence_time)
+                scheduler.scheduled_at = datetime.now(timezone.utc) + timedelta(hours=recurrence_time)
             elif recurrence_unit == "day":
-                scheduler.scheduled_at = datetime.now() + timedelta(days=recurrence_time)
+                scheduler.scheduled_at = datetime.now(timezone.utc) + timedelta(days=recurrence_time)
             else:
                 logger.warning(f"Unknown recurrence_unit '{recurrence_unit}', defaulting to 1 day.")
-                scheduler.scheduled_at = datetime.now() + timedelta(days=1)
+                scheduler.scheduled_at = datetime.now(timezone.utc) + timedelta(days=1)
 
             scheduler.status = SchedulerStatus.PENDING.value
         else:
             scheduler.status = SchedulerStatus.FINISHED.value
+
+        # Add success log entry
+        from models import SchedulerLog
+        success_log = SchedulerLog(
+            scheduler_id=scheduler.id,
+            post_content=f"Successfully posted to platform: {post}",
+            status="INFO",
+            detail="Scheduled execution completed successfully."
+        )
+        db.add(success_log)
 
         execution.status = "completed"
         execution.completed_at = datetime.now()
@@ -199,6 +212,15 @@ async def mark_and_increment_schedule(db: AsyncSession, execution: TaskExecution
         logger.error(f"[worker] mark_and_increment_schedule failed for execution {execution.id}: {e}")
         try:
             await db.rollback()
+            # Add failure log entry
+            from models import SchedulerLog
+            error_log = SchedulerLog(
+                scheduler_id=scheduler.id,
+                post_content=f"Failed to post.",
+                status="ERROR",
+                detail=str(e)[:1000]
+            )
+            db.add(error_log)
             # Reset so the execution can be retried next cycle
             execution.status = "queued"
             execution.started_at = None

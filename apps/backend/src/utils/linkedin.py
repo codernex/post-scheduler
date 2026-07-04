@@ -86,8 +86,9 @@ class LinkedInClient:
         payload = {
             "author": self.get_person_urn(author_urn),
             "commentary": commentary,
-            "visibility": {
-                "com.linkedin.voyager.feed.shared.ScreenExtent": "PUBLIC"
+            "visibility": "PUBLIC",
+            "distribution": {
+                "feedDistribution": "MAIN_FEED"
             },
             "lifecycleState": "PUBLISHED"
         }
