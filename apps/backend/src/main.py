@@ -30,11 +30,11 @@ async def lifespan(app: FastAPI):
 
     scheduler = AsyncIOScheduler()
 
-    # scheduler.add_job(
-    #     push_scheduler_to_task_execution,
-    #     IntervalTrigger(seconds=20),
-    #     id="push_to_queue",
-    # )
+    scheduler.add_job(
+        push_scheduler_to_task_execution,
+        IntervalTrigger(seconds=20),
+        id="push_to_queue",
+    )
     scheduler.add_job(
         complete_execution,
         IntervalTrigger(seconds=5),

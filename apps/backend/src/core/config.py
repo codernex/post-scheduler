@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     JWT_SECRET: str
     ALGORITHM: str = "HS256"
 
+    # LLM & Memory
+    GEMINI_API_KEY: str
+    SUPERMEMORY_API_KEY: str
+
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
 

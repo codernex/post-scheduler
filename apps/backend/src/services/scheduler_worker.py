@@ -136,20 +136,52 @@ async def push_scheduler_to_task_execution():
             await db.rollback()
 
 
+# Platform id → human-readable name used by the agent prompt
+_PLATFORM_NAMES: dict[int, str] = {
+    2: "LinkedIn",
+}
+
 # ---------------------------------------------------------
 # Worker 2: Do the actual posting work for one execution
 # ---------------------------------------------------------
 async def _run_posting_logic(scheduler: Scheduler, db: AsyncSession):
-    """Runs the platform-specific posting logic for a scheduler."""
-    print("[_run_posting_logic] Starting")
+    """
+    Runs the platform-specific posting logic for a scheduler.
+
+    Steps:
+      1. Instantiate PostingAgent with the scheduler's prompt & platform.
+      2. Agent queries Supermemory for past posts (no repeats).
+      3. Agent calls Gemini to generate a fresh post.
+      4. Post is published to the social platform.
+      5. Agent saves the post to Supermemory for future recall.
+    """
+    from agent.agent import PostingAgent
+
+    platform = _PLATFORM_NAMES.get(scheduler.social_media_id, "LinkedIn")
+
+    agent = PostingAgent(
+        scheduler_id=scheduler.id,
+        prompt=scheduler.prompt,
+        platform=platform,
+    )
+
+    # --- Generate the post via Gemini (informed by Supermemory context) ---
+    post = await agent.generate_post()
+    logger.info("[worker] Post generated (%d chars) for scheduler %d", len(post), scheduler.id)
+
+    # --- Publish to the social platform ---
     if scheduler.social_media_id == 2:  # LinkedIn
         access_token = await get_linkedin_access_token(user_id=scheduler.user_id, db=db)
-        print("Access Token:::",access_token)
-        post = f"This is a test post by linkedin scheduler at {datetime.now(timezone.utc)}"
-        logger.info(f"[worker] LinkedIn post ready — token obtained, content: {post}")
-        author =  linkedin_client.get_user_info(access_token)
+        logger.info("[worker] LinkedIn access token obtained for user %d", scheduler.user_id)
+        author = linkedin_client.get_user_info(access_token)
         urn = linkedin_client.get_person_urn(author["sub"])
-        linkedin_client.publish_post(access_token,urn,post)
+        linkedin_client.publish_post(access_token, urn, post)
+        logger.info("[worker] Post published to LinkedIn — scheduler %d", scheduler.id)
+
+    # --- Save to Supermemory AFTER a successful publish ---
+    await agent.save_post_to_memory(post)
+
+    return post
 
 
 # ---------------------------------------------------------
@@ -170,7 +202,7 @@ async def mark_and_increment_schedule(db: AsyncSession, execution: TaskExecution
 
     try:
         # Do the actual work first — before touching any counters.
-        await _run_posting_logic(scheduler, db)
+        post= await _run_posting_logic(scheduler, db)
 
         # Advance the run counter
         scheduler.runs_completed += 1
