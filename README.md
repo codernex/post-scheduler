@@ -25,7 +25,9 @@ post-scheduler/
 
 - 🔐 **User Authentication** — Signup & login with hashed passwords (`bcrypt`)
 - 🌐 **Social Media Integration** — LinkedIn OAuth integration (Facebook, LinkedIn supported)
-- 🗓️ **Post Scheduling** — Schedule posts with recurrence support
+- 🗓️ **Post Scheduling** — Schedule posts with recurrence support (minutes, hours, days)
+- 🧠 **Autonomous Posting Agent** — AI-powered post writer using **LangChain** and **Google Gemini** (`gemini-2.0-flash`)
+- 💾 **Long-Term Memory** — Persistent context tracking using **Supermemory** (via isolated per-scheduler tags) to prevent content duplication across runs
 - 🔄 **Auto-Generated API Client** — TypeScript client generated from the FastAPI OpenAPI schema
 - 🛡️ **Async Backend** — Fully async FastAPI + SQLAlchemy with PostgreSQL via `asyncpg`
 
@@ -37,6 +39,7 @@ post-scheduler/
 |--------------|----------------------------------------------------|
 | Frontend     | Next.js 16, React 19, Tailwind CSS v4, shadcn/ui  |
 | Backend      | FastAPI, SQLAlchemy 2, Alembic, Uvicorn            |
+| AI Engine    | LangChain, langchain-google-genai, supermemory     |
 | Database     | PostgreSQL (async via `asyncpg`)                   |
 | API Client   | `@hey-api/openapi-ts` (auto-generated from OpenAPI)|
 | Monorepo     | Turborepo, pnpm workspaces                         |
@@ -75,7 +78,7 @@ pnpm install
 cd apps/backend
 uv venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-uv pip install -r requirements.txt
+uv pip install -r pyproject.toml
 ```
 
 ### 4. Configure environment variables
@@ -88,6 +91,10 @@ LINKEDIN_CLIENT_ID="your_linkedin_client_id"
 LINKEDIN_CLIENT_SECRET="your_linkedin_client_secret"
 LINKEDIN_REDIRECT_URI="http://localhost:8081/api/v1/social-media/connect/linkedin/callback"
 JWT_SECRET="your_secure_jwt_secret_key"
+
+# AI Agent Configuration
+GEMINI_API_KEY="your_gemini_api_key_here"
+SUPERMEMORY_API_KEY="your_supermemory_api_key_here"
 ```
 
 ### 5. Run database migrations
@@ -160,6 +167,15 @@ The backend is served at `http://localhost:8081` and exposes interactive docs at
 | GET    | `/status`                   | Get connected/disconnected integration status of platforms    |
 | DELETE | `/disconnect/{platform}`    | Disconnect a connected social media platform                  |
 
+### Scheduler Endpoints (`/api/v1/scheduler`)
+
+| Method | Endpoint              | Description                                             |
+|--------|-----------------------|---------------------------------------------------------|
+| POST   | `/`                   | Create a new post scheduler config                      |
+| GET    | `/`                   | Get all post schedules for the authenticated user       |
+| DELETE | `/{schedule_id}`      | Delete a specific scheduler configuration               |
+| GET    | `/{schedule_id}/logs` | Get execution audit logs for a specific scheduler       |
+
 ---
 
 ## 📦 Packages
@@ -182,13 +198,15 @@ Shared linting and TypeScript configurations used across all apps and packages i
 
 ## 🗄️ Database Schema
 
-| Table             | Description                                          |
-|-------------------|------------------------------------------------------|
-| `users`           | Registered users with hashed passwords              |
-| `social_media`    | Supported social platforms (Facebook, LinkedIn, …)  |
-| `user_social_media` | Many-to-many: users ↔ connected accounts         |
-| `scheduler`       | Scheduled posts with recurrence and status tracking |
-| `api_tokens`      | OAuth tokens for social media integrations          |
+| Table             | Description                                                            |
+|-------------------|------------------------------------------------------------------------|
+| `users`           | Registered users with hashed passwords                                |
+| `social_media`    | Supported social platforms (Facebook, LinkedIn, …)                    |
+| `user_social_media` | Many-to-many: users ↔ connected accounts                           |
+| `scheduler`       | Scheduled post settings (recurrence, runs, user prompts)               |
+| `task_executions` | Active execution queue entries pulled by workers                       |
+| `scheduler_logs`  | Audit log history tracking published contents & generation outcomes   |
+| `api_tokens`      | OAuth tokens for social media integrations                            |
 
 Migrations are managed with [Alembic](https://alembic.sqlalchemy.org/):
 
