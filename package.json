@@ -1,6 +1,7 @@
 {
   "name": "post-scheduler",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "build": "turbo run build",
     "dev:frontend": "pnpm --filter web dev",
