@@ -1,7 +1,7 @@
 """
 PostingAgent
 ============
-Uses LangChain + Google Gemini to generate social-media posts and
+Uses LangChain + OpenRouter to generate social-media posts and
 Supermemory to track what has already been posted per scheduler,
 so each run covers fresh content.
 
@@ -13,7 +13,7 @@ import logging
 from typing import Optional
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from supermemory import Supermemory
 
 from core import settings
@@ -21,14 +21,15 @@ from core import settings
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Gemini model — initialised once at module level so the singleton is shared
-# across all PostingAgent instances within the same process.
+# OpenRouter model (OpenAI-compatible) — initialised once at module level so the
+# singleton is shared across all PostingAgent instances within the same process.
 # ---------------------------------------------------------------------------
-_llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",
-    google_api_key=settings.GEMINI_API_KEY,
+_llm = ChatOpenAI(
+    openai_api_base="https://openrouter.ai/api/v1",
+    openai_api_key=settings.OPENROUTER_API_KEY,
+    model=settings.OPENROUTER_MODEL,
     temperature=0.85,       # a bit of creativity
-    max_output_tokens=1024,
+    max_tokens=1024,
 )
 
 # ---------------------------------------------------------------------------
@@ -161,7 +162,7 @@ class PostingAgent:
 
         1. Retrieves previously posted content from Supermemory.
         2. Builds a LangChain prompt with that context.
-        3. Invokes Gemini to generate a fresh post (with retry + timeout).
+        3. Invokes OpenRouter to generate a fresh post (with retry + timeout).
         4. Returns the generated post text.
         """
         logger.info(
@@ -172,6 +173,7 @@ class PostingAgent:
 
         previous_posts = await self._recall_previous_posts()
 
+        print(f"[PostingAgent] Previous posts: {previous_posts}")
         messages = [
             SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=self._build_human_message(previous_posts)),
@@ -195,7 +197,7 @@ class PostingAgent:
 
             except TimeoutError:
                 logger.error(
-                    "[PostingAgent] Gemini call timed out (attempt %d/%d) — scheduler_id=%d",
+                    "[PostingAgent] OpenRouter call timed out (attempt %d/%d) — scheduler_id=%d",
                     attempt, max_retries, self.scheduler_id,
                 )
                 if attempt == max_retries:
@@ -208,7 +210,7 @@ class PostingAgent:
                 if is_rate_limit and attempt < max_retries:
                     wait = 2 ** attempt  # 2s, 4s
                     logger.warning(
-                        "[PostingAgent] Gemini rate-limited (attempt %d/%d), "
+                        "[PostingAgent] OpenRouter rate-limited (attempt %d/%d), "
                         "retrying in %ds — scheduler_id=%d",
                         attempt, max_retries, wait, self.scheduler_id,
                     )
@@ -225,7 +227,7 @@ class PostingAgent:
         recall it and avoid repetition.
         """
         try:
-            _memory.memories.add(
+            _memory.add(
                 content=post_content,
                 container_tags=[self._memory_tag],
                 metadata={

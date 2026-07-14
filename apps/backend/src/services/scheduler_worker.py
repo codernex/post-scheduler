@@ -7,10 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from core import get_db
-from models import Scheduler, ApiToken
+from models import Scheduler, ApiToken, SocialMedia
 from models.Scheduler import TaskExecution
 from services.scheduler import SchedulerStatus
 import utils as utils
+from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
 
@@ -20,31 +21,58 @@ linkedin_client = utils.LinkedInClient()
 # ---------------------------------------------------------
 # LinkedIn helper
 # ---------------------------------------------------------
-async def get_linkedin_access_token(user_id: int, db: AsyncSession) -> str:
+async def get_platform_access_token(user_id: int, social_media_id: int, db: AsyncSession) -> str:
     result = await db.execute(
+        select(SocialMedia)
+        .options(selectinload(SocialMedia.parent))
+        .where(SocialMedia.id == social_media_id)
+    )
+    platform = result.scalar_one_or_none()
+    if not platform:
+        raise Exception(f"Social media platform {social_media_id} not found")
+
+    target_media_id = platform.parent_id if platform.parent_id else platform.id
+
+    token_result = await db.execute(
         select(ApiToken).where(
-            ApiToken.user_id == user_id
+            ApiToken.user_id == user_id,
+            ApiToken.social_media_id == target_media_id
         )
     )
-    api_token = result.scalar_one_or_none()
+    api_token = token_result.scalar_one_or_none()
     if not api_token:
-        raise Exception("No LinkedIn API token found for user")
+        raise Exception(f"No API token found for platform {platform.name}")
 
     access_token = api_token.access_token
     if not access_token:
-        raise Exception("Failed to decrypt LinkedIn API token")
+        raise Exception(f"Failed to decrypt API token for platform {platform.name}")
 
-    if api_token.expires_at < datetime.now():
-        refreshed_tokens = await linkedin_client.refresh_access_token(api_token.refresh_token
-                                                                      )
-        if refreshed_tokens:
-            api_token.access_token = refreshed_tokens["access_token"]
-            api_token.expires_at = datetime.fromtimestamp(refreshed_tokens["expires_in"])
-            api_token.refresh_token = refreshed_tokens["refresh_token"]
-            api_token.updated_at = datetime.now()
-            await db.commit()
+    if api_token.expires_at and api_token.expires_at < datetime.now():
+        if platform.name.lower() == "linkedin":
+            refreshed_tokens = await run_in_threadpool(
+                linkedin_client.refresh_access_token, api_token.refresh_token
+            )
+            if refreshed_tokens:
+                api_token.access_token = refreshed_tokens["access_token"]
+                expires_in = refreshed_tokens.get("expires_in")
+                api_token.expires_at = datetime.now() + timedelta(seconds=int(expires_in)) if expires_in else None
+                api_token.refresh_token = refreshed_tokens.get("refresh_token")
+                api_token.updated_at = datetime.now()
+                await db.commit()
+        elif platform.name.lower() == "facebook" or (platform.parent and platform.parent.name.lower() == "facebook"):
+            facebook_client = utils.FacebookClient()
+            refreshed_tokens = await run_in_threadpool(
+                facebook_client.refresh_access_token, api_token.refresh_token or api_token.access_token
+            )
+            if refreshed_tokens:
+                api_token.access_token = refreshed_tokens["access_token"]
+                expires_in = refreshed_tokens.get("expires_in")
+                api_token.expires_at = datetime.now() + timedelta(seconds=int(expires_in)) if expires_in else None
+                api_token.refresh_token = refreshed_tokens.get("refresh_token")
+                api_token.updated_at = datetime.now()
+                await db.commit()
 
-    return access_token
+    return api_token.access_token
 
 
 # ---------------------------------------------------------
@@ -136,10 +164,7 @@ async def push_scheduler_to_task_execution():
             await db.rollback()
 
 
-# Platform id → human-readable name used by the agent prompt
-_PLATFORM_NAMES: dict[int, str] = {
-    2: "LinkedIn",
-}
+# Platform ID mapping not needed anymore as names are resolved dynamically from DB
 
 # ---------------------------------------------------------
 # Worker 2: Do the actual posting work for one execution
@@ -157,12 +182,19 @@ async def _run_posting_logic(scheduler: Scheduler, db: AsyncSession):
     """
     from agent.agent import PostingAgent
 
-    platform = _PLATFORM_NAMES.get(scheduler.social_media_id, "LinkedIn")
+    platform_result = await db.execute(
+        select(SocialMedia).where(SocialMedia.id == scheduler.social_media_id)
+    )
+    platform_model = platform_result.scalar_one_or_none()
+    if not platform_model:
+        raise Exception(f"Platform with ID {scheduler.social_media_id} not found")
+
+    platform_name = platform_model.name
 
     agent = PostingAgent(
         scheduler_id=scheduler.id,
         prompt=scheduler.prompt,
-        platform=platform,
+        platform=platform_name,
     )
 
     # --- Generate the post via Gemini (informed by Supermemory context) ---
@@ -170,13 +202,29 @@ async def _run_posting_logic(scheduler: Scheduler, db: AsyncSession):
     logger.info("[worker] Post generated (%d chars) for scheduler %d", len(post), scheduler.id)
 
     # --- Publish to the social platform ---
-    if scheduler.social_media_id == 2:  # LinkedIn
-        access_token = await get_linkedin_access_token(user_id=scheduler.user_id, db=db)
+    if "linkedin" in platform_name.lower():
+        access_token = await get_platform_access_token(scheduler.user_id, scheduler.social_media_id, db)
         logger.info("[worker] LinkedIn access token obtained for user %d", scheduler.user_id)
-        author = linkedin_client.get_user_info(access_token)
+        author = await run_in_threadpool(linkedin_client.get_user_info, access_token)
         urn = linkedin_client.get_person_urn(author["sub"])
-        linkedin_client.publish_post(access_token, urn, post)
+        await run_in_threadpool(linkedin_client.publish_post, access_token, urn, post)
         logger.info("[worker] Post published to LinkedIn — scheduler %d", scheduler.id)
+    elif "facebook" in platform_name.lower() or "instagram" in platform_name.lower() or "thread" in platform_name.lower():
+        access_token = await get_platform_access_token(scheduler.user_id, scheduler.social_media_id, db)
+        logger.info("[worker] Meta access token obtained for user %d", scheduler.user_id)
+        
+        facebook_client = utils.FacebookClient()
+        author = await run_in_threadpool(facebook_client.get_user_info, access_token)
+        urn = f"facebook:{author.get('id')}"
+        
+        await run_in_threadpool(
+            facebook_client.publish_post,
+            access_token,
+            urn,
+            post,
+            platform_name=platform_name
+        )
+        logger.info("[worker] Post published to %s — scheduler %d", platform_name, scheduler.id)
 
     # --- Save to Supermemory AFTER a successful publish ---
     await agent.save_post_to_memory(post)

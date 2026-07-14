@@ -1,6 +1,6 @@
 from core import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Table, Column, ForeignKey, String
+from sqlalchemy import Table, Column, ForeignKey, String, Integer
 
 # Many to many with user an social media
 user_social_media_table = Table(
@@ -19,3 +19,13 @@ class SocialMedia(Base):
         secondary=user_social_media_table, back_populates="social_media"
     )
     url: Mapped[str] = mapped_column(String(255), nullable=True)
+
+    # Options/Sub-platforms
+    parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("social_media.id"), nullable=True)
+
+    parent: Mapped["SocialMedia | None"] = relationship(
+        "SocialMedia", remote_side=[id], back_populates="children"
+    )
+    children: Mapped[list["SocialMedia"]] = relationship(
+        "SocialMedia", back_populates="parent"
+    )

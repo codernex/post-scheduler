@@ -2,26 +2,28 @@ import os
 import core as core
 from requests_oauthlib import OAuth2Session
 import requests
+from .social_client import SocialClient
 
 # Enable insecure transport for local development (only if HTTP redirect URIs are used)
-if core.settings.LINKEDIN_REDIRECT_URI.startswith("http://localhost") or core.settings.LINKEDIN_REDIRECT_URI.startswith(
-        "http://127.0.0.1"):
-    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+if core.settings.LINKEDIN_REDIRECT_URI.startswith(
+    "http://localhost"
+) or core.settings.LINKEDIN_REDIRECT_URI.startswith("http://127.0.0.1"):
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
-SCOPES = ['openid', 'profile', 'email', 'w_member_social']
-AUTH_BASE_URL = 'https://www.linkedin.com/oauth/v2/authorization'
-TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken'
-USERINFO_URL = 'https://api.linkedin.com/v2/userinfo'
-POSTS_URL = 'https://api.linkedin.com/rest/posts'
-LINKEDIN_VERSION = '202606'  # API Version Header
+SCOPES = ["openid", "profile", "email", "w_member_social"]
+AUTH_BASE_URL = "https://www.linkedin.com/oauth/v2/authorization"
+TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken"
+USERINFO_URL = "https://api.linkedin.com/v2/userinfo"
+POSTS_URL = "https://api.linkedin.com/rest/posts"
+LINKEDIN_VERSION = "202606"  # API Version Header
 
 
-class LinkedInClient:
+class LinkedInClient(SocialClient):
     def __init__(
-            self,
-            client_id: str | None = None,
-            client_secret: str | None = None,
-            redirect_uri: str | None = None,
+        self,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        redirect_uri: str | None = None,
     ):
         self.client_id = client_id or core.settings.LINKEDIN_CLIENT_ID
         self.client_secret = client_secret or core.settings.LINKEDIN_CLIENT_SECRET
@@ -32,34 +34,31 @@ class LinkedInClient:
         Generates the authorization URL and state.
         """
         linkedin = OAuth2Session(
-            client_id=self.client_id,
-            redirect_uri=self.redirect_uri,
-            scope=SCOPES
+            client_id=self.client_id, redirect_uri=self.redirect_uri, scope=SCOPES
         )
-        return linkedin.authorization_url(AUTH_BASE_URL, state=state)
+        return linkedin.authorization_url(AUTH_BASE_URL, state=state)  # type: ignore
 
-    def fetch_token(self, code: str) -> dict:
+    def fetch_token(self, code: str) -> dict[str, str]:
         """
         Fetches the access token using the authorization code.
         """
         linkedin = OAuth2Session(
-            client_id=self.client_id,
-            redirect_uri=self.redirect_uri
+            client_id=self.client_id, redirect_uri=self.redirect_uri
         )
-        return linkedin.fetch_token(
+        return linkedin.fetch_token(  # type: ignore
             TOKEN_URL,
             code=code,
             client_secret=self.client_secret,
-            include_client_id=True
+            include_client_id=True,
         )
 
-    def get_user_info(self, access_token: str) -> dict:
+    def get_user_info(self, access_token: str) -> dict[str, str]:
         """
         Fetches the user profile info from the LinkedIn OIDC endpoint.
         """
         headers = {
             "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
         response = requests.get(USERINFO_URL, headers=headers)
         response.raise_for_status()
@@ -73,7 +72,9 @@ class LinkedInClient:
             return sub
         return f"urn:li:person:{sub}"
 
-    def publish_post(self, access_token: str, author_urn: str, commentary: str) -> dict:
+    def publish_post(
+        self, access_token: str, author_urn: str, commentary: str
+    ) -> dict[str, str]:
         """
         Publishes a text post to the user's LinkedIn profile feed.
         """
@@ -81,26 +82,27 @@ class LinkedInClient:
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
             "X-Restli-Protocol-Version": "2.0.0",
-            "LinkedIn-Version": LINKEDIN_VERSION
+            "LinkedIn-Version": LINKEDIN_VERSION,
         }
-        payload = {
+        payload: dict[str, str | dict[str, str | None] | None] = {
             "author": self.get_person_urn(author_urn),
             "commentary": commentary,
             "visibility": "PUBLIC",
-            "distribution": {
-                "feedDistribution": "MAIN_FEED"
-            },
-            "lifecycleState": "PUBLISHED"
+            "distribution": {"feedDistribution": "MAIN_FEED"},
+            "lifecycleState": "PUBLISHED",
         }
         response = requests.post(POSTS_URL, headers=headers, json=payload)
         response.raise_for_status()
         if response.status_code == 201:
             if response.text:
                 return response.json()
-            return {"status": "success", "id": response.headers.get("x-restli-id")}
+            return {
+                "status": "success",
+                "id": response.headers.get("x-restli-id").__str__(),
+            }
         return response.json()
 
-    def refresh_access_token(self, refresh_token: str) -> dict:
+    def refresh_access_token(self, refresh_token: str) -> dict[str, str]:
         """
         Refreshes the access token using the refresh token.
         """

@@ -30,21 +30,36 @@ async def seed_social_media():
 
     # Use AsyncSession and 'async with'
     async with AsyncSession(engine) as session:
+        # Idempotently seed parents
+        for name, url in [("Facebook", "https://facebook.com"), ("Linkedin", "https://linkedin.com")]:
+            result = await session.execute(select(SocialMedia).where(SocialMedia.name == name))
+            db_sm = result.scalar_one_or_none()
+            if not db_sm:
+                db_sm = SocialMedia(name=name, url=url)
+                session.add(db_sm)
+                await session.flush()
 
-        # In async SQLAlchemy, we use 'select' and 'await session.scalar()' to get a single value like a count
-        count_query = select(func.count()).select_from(SocialMedia)
-        existing_count = await session.scalar(count_query)
+        await session.commit()
 
-        if existing_count is not None and existing_count > 0:
-            print(f"Database already contains {existing_count} records. Skipping seed.")
-            return
+        # Fetch Facebook parent
+        fb_result = await session.execute(select(SocialMedia).where(SocialMedia.name == "Facebook"))
+        facebook = fb_result.scalar_one()
 
-        db_social_medias = [SocialMedia(**sm) for sm in social_medias]
+        # Idempotently seed children
+        children = [
+            ("Facebook Post", "https://facebook.com"),
+            ("Instagram Post", "https://instagram.com"),
+            ("Threads Post", "https://threads.net"),
+        ]
+        for name, url in children:
+            result = await session.execute(select(SocialMedia).where(SocialMedia.name == name))
+            db_sm = result.scalar_one_or_none()
+            if not db_sm:
+                db_sm = SocialMedia(name=name, url=url, parent_id=facebook.id)
+                session.add(db_sm)
 
-        session.add_all(db_social_medias)
-        await session.commit()  # Commit must be awaited
-
-        print(f"Successfully seeded {len(db_social_medias)} social media platforms!")
+        await session.commit()
+        print("Successfully seeded all social media platforms and child options!")
 
 
 if __name__ == "__main__":

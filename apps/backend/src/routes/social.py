@@ -17,6 +17,7 @@ social_router = APIRouter(
 )
 
 linkedin = utils.LinkedInClient()
+facebook = utils.FacebookClient()
 
 @social_router.get("/connect/linkedin")
 def linkedin_connect(
@@ -103,6 +104,93 @@ async def linkedin_callback(
 
     return RedirectResponse(url="http://localhost:3000/dashboard?connected=linkedin")
 
+
+@social_router.get("/connect/facebook")
+def facebook_connect(
+    current_user: User = Depends(get_current_user)
+):
+    # Encrypt the user's ID to use as the state parameter
+    encrypted_state = utils.encrypt_data(str(current_user.id))
+    url, state = facebook.get_authorization_url(state=encrypted_state)
+    return RedirectResponse(url)
+
+
+@social_router.get("/connect/facebook/callback")
+async def facebook_callback(
+    code: str,
+    state: str,
+    db: AsyncSession = Depends(get_db)
+):
+    # Decrypt the state parameter to verify the user identity
+    try:
+        user_id_str = utils.decrypt_data(state)
+        if not user_id_str:
+            raise ValueError()
+        user_id = int(user_id_str)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid state parameter"
+        )
+
+    # Fetch token and user info from Facebook
+    token = await run_in_threadpool(facebook.fetch_token, code)
+    user_info = await run_in_threadpool(facebook.get_user_info, token['access_token'])
+
+    # Find the Facebook platform record in the database
+    result = await db.execute(select(SocialMedia).where(SocialMedia.name.ilike("facebook")))
+    social_media = result.scalar_one_or_none()
+    if not social_media:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Social media platform 'Facebook' not found in database"
+        )
+
+    # Calculate token expiration time
+    expires_in = token.get("expires_in")
+    expires_at = datetime.now() + timedelta(seconds=int(expires_in)) if expires_in else None
+
+    # Check for an existing token connection
+    token_query = await db.execute(
+        select(ApiToken).where(
+            ApiToken.user_id == user_id,
+            ApiToken.social_media_id == social_media.id
+        )
+    )
+    api_token = token_query.scalar_one_or_none()
+
+    scopes_val = token.get("scope")
+    if isinstance(scopes_val, list):
+        scopes_str = ",".join(scopes_val)
+    elif isinstance(scopes_val, str):
+        scopes_str = scopes_val
+    else:
+        scopes_str = None
+
+    if api_token:
+        # Update existing token
+        api_token.access_token = token["access_token"]
+        api_token.refresh_token = token.get("refresh_token")
+        api_token.expires_at = expires_at
+        api_token.token_type = token.get("token_type")
+        api_token.scopes = scopes_str
+    else:
+        # Create new token record
+        api_token = ApiToken(
+            user_id=user_id,
+            social_media_id=social_media.id,
+            expires_at=expires_at,
+            token_type=token.get("token_type"),
+            scopes=scopes_str
+        )
+        api_token.access_token = token["access_token"]
+        api_token.refresh_token = token.get("refresh_token")
+        db.add(api_token)
+
+    await db.commit()
+
+    return RedirectResponse(url="http://localhost:3000/dashboard?connected=facebook")
+
 @social_router.get("/status", response_model=list[SocialPlatformStatus])
 async def get_social_connection_status(
     current_user: User = Depends(get_current_user),
@@ -122,7 +210,9 @@ async def get_social_connection_status(
     # Construct the response
     status_list = []
     for platform in platforms:
-        token = connected_map.get(platform.id)
+        # Determine target connection ID (self or parent)
+        target_id = platform.parent_id if platform.parent_id else platform.id
+        token = connected_map.get(target_id)
         is_connected = token is not None and not token.is_expired
         
         status_list.append(
