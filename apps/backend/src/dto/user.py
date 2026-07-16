@@ -14,6 +14,10 @@ class CreateUserResponse(BaseModel):
     username: str
     email: str
     created_at: datetime.datetime
+    role: str
+    tier: str
+
+
 
 class LoginPayload(BaseModel):
     email: str

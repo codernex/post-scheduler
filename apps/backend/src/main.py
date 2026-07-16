@@ -10,6 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.auth import auth_router
 from routes.scheudler import scheduler_router
 from routes.social import social_router
+from routes.user import router as users_router
+
 from services.scheduler_worker import (
     complete_execution,
     push_scheduler_to_task_execution,
@@ -69,6 +71,7 @@ v1_router = APIRouter(prefix="/api/v1")
 v1_router.include_router(auth_router)
 v1_router.include_router(social_router)
 v1_router.include_router(scheduler_router)
+v1_router.include_router(users_router)
 
 app.include_router(v1_router)
 

@@ -5,7 +5,12 @@ from alembic import context
 from  core import Base  # adjust import
 from  models import User, SocialMedia, Scheduler, ApiToken
 
+import os
 config = context.config
+
+# Overwrite database URL with the DATABASE_URL environment variable if set
+if database_url := os.getenv("DATABASE_URL"):
+    config.set_main_option("sqlalchemy.url", database_url)
 
 target_metadata = Base.metadata
 

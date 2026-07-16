@@ -55,8 +55,12 @@ class UserService:
                 id=user.id,
                 email=user.email,
                 username=user.username,
-                created_at=user.created_at
+                created_at=user.created_at,
+                role=user.role,
+                tier=user.tier
+
             ),
+
             token_type="Bearer"
         )
 

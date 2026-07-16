@@ -21,3 +21,7 @@ class User(Base):
         DateTime, default=datetime.now, nullable=False
     )
     timezone: Mapped[str] = mapped_column(String, default="UTC", nullable=True)
+    role: Mapped[str] = mapped_column(String(50), default="user", server_default="user", nullable=False)
+    tier: Mapped[str] = mapped_column(String(50), default="free", server_default="free", nullable=False)
+
+
