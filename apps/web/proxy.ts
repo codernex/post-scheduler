@@ -5,14 +5,6 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
-  // Root redirect
-  if (pathname === '/' || pathname === '') {
-    if (token) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    } else {
-      return NextResponse.redirect(new URL('/auth/login', request.url));
-    }
-  }
 
   // Guard dashboard routes
   if (pathname.startsWith('/dashboard') && !token) {
@@ -28,5 +20,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/auth/login'],
+  matcher: ['/dashboard/:path*', '/auth/login'],
 };

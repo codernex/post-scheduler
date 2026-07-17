@@ -4,6 +4,8 @@ import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
+import GoogleAnalyticsTracker from "@/components/google-analytics-tracker";
+import CookieConsentBanner from "@/components/cookie-consent-banner";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -29,7 +31,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-slate-950 text-slate-100`}>
+        <GoogleAnalyticsTracker />
         {children}
+        <CookieConsentBanner />
         <Toaster theme="dark" position="bottom-right" richColors />
       </body>
     </html>

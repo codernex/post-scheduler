@@ -11,6 +11,7 @@ from routes.auth import auth_router
 from routes.scheudler import scheduler_router
 from routes.social import social_router
 from routes.user import router as users_router
+from routes.contact import router as contact_router
 
 from services.scheduler_worker import (
     complete_execution,
@@ -72,6 +73,7 @@ v1_router.include_router(auth_router)
 v1_router.include_router(social_router)
 v1_router.include_router(scheduler_router)
 v1_router.include_router(users_router)
+v1_router.include_router(contact_router)
 
 app.include_router(v1_router)
 
