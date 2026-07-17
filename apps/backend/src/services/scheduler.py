@@ -51,8 +51,31 @@ class SchedulerService:
         # Convert to UTC for consistent storage
         utc_time = incoming_dt.astimezone(timezone.utc)
 
+        # Fetch target platform connection to verify it is not Facebook
+        from models import SocialMedia
+        sm_result = await self._db.execute(select(SocialMedia).where(SocialMedia.id == payload.social_media_id))
+        social_media = sm_result.scalar_one_or_none()
+        if not social_media:
+            raise HTTPException(status_code=404, detail="Social media platform connection not found")
+        
+        is_facebook = False
+        if social_media.name.lower() == "facebook":
+            is_facebook = True
+        elif social_media.parent_id:
+            parent_result = await self._db.execute(select(SocialMedia).where(SocialMedia.id == social_media.parent_id))
+            parent_platform = parent_result.scalar_one_or_none()
+            if parent_platform and parent_platform.name.lower() == "facebook":
+                is_facebook = True
+                
+        if is_facebook:
+            raise HTTPException(
+                status_code=400,
+                detail="Facebook scheduling is temporarily disabled for testing."
+            )
+
         # Prepare data and save
         schedule_data = payload.model_dump(exclude={"scheduled_at"})
+
 
         schedule = Scheduler(
             **schedule_data,

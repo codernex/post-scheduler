@@ -208,13 +208,16 @@ export function CreateScheduleDialog({
                         p.name.toLowerCase().includes("threads") ||
                         p.name.toLowerCase().includes("thread");
                       
+                      const isFacebookDisabled =
+                        p.name.toLowerCase().includes("facebook");
+                      
                       // Free tier limit: only 1 platform schedule
                       const isPlatformLocked = 
                         !hasUnlimitedAccess && 
                         scheduledPlatformId !== undefined && 
                         p.id !== scheduledPlatformId;
 
-                      const isDisabled = isInstagramDisabled || isPlatformLocked;
+                      const isDisabled = isInstagramDisabled || isFacebookDisabled || isPlatformLocked;
 
                       return (
                         <SelectItem
@@ -224,6 +227,7 @@ export function CreateScheduleDialog({
                         >
                           {p.name} 
                           {isInstagramDisabled && " (Disabled)"}
+                          {isFacebookDisabled && " (Temporarily Disabled)"}
                           {isPlatformLocked && " (Pro Only: Limited to 1 Platform)"}
                         </SelectItem>
                       );
