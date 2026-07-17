@@ -40,6 +40,8 @@ services:
     build:
       context: .
       dockerfile: ./apps/web/Dockerfile
+      args:
+        - NEXT_PUBLIC_GA_ID=${NEXT_PUBLIC_GA_ID}
     ports:
       - "3000:3000"
     environment:

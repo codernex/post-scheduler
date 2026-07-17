@@ -43,9 +43,11 @@ jobs:
             echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> .env
             echo "NEXT_PUBLIC_GA_ID=${{ secrets.G_TAG }}" >> .env
 
-            # Rebuild and restart the Docker containers
-            docker compose down
-            docker compose up --build -d
+            # Build the new images in the background (0 downtime during compile)
+            docker compose build --pull
+
+            # Recreate containers instantly with the new builds
+            docker compose up -d
 
             # Seed the administrator account
             docker compose exec -T backend python src/core/create_admin.py

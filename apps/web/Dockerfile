@@ -14,6 +14,8 @@ COPY apps/postcss.config.mjs ./apps/postcss.config.mjs
 RUN pnpm install --frozen-lockfile
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_GA_ID
+ENV NEXT_PUBLIC_GA_ID=$NEXT_PUBLIC_GA_ID
 ARG BACKEND_URL=http://backend:8081
 ENV BACKEND_URL=$BACKEND_URL
 RUN pnpm --filter web build
