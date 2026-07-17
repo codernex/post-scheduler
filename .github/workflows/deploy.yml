@@ -50,7 +50,7 @@ jobs:
             docker compose up -d
 
             # Seed the administrator account
-            docker compose exec -T backend python src/core/create_admin.py
+            docker compose exec -T backend env PYTHONPATH=src python src/core/create_admin.py
 
             # Clean up unused Docker images to save disk space
             docker image prune -f
