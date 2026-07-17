@@ -42,7 +42,8 @@ export default function AuthPage() {
         });
 
         if (response.error) {
-          const detail = (response.error as any)?.detail || "Login failed";
+          const errorBody = response.error as { detail?: string };
+          const detail = errorBody?.detail || "Login failed";
           toast.error(typeof detail === "string" ? detail : JSON.stringify(detail), {
             icon: <ShieldAlert className="w-5 h-5 text-rose-500" />,
           });
@@ -65,7 +66,8 @@ export default function AuthPage() {
         });
 
         if (response.error) {
-          const detail = (response.error as any)?.detail || "Signup failed";
+          const errorBody = response.error as { detail?: string };
+          const detail = errorBody?.detail || "Signup failed";
           toast.error(typeof detail === "string" ? detail : JSON.stringify(detail), {
             icon: <ShieldAlert className="w-5 h-5 text-rose-500" />,
           });
@@ -92,7 +94,7 @@ export default function AuthPage() {
           }
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("An unexpected error occurred. Please try again.");
       console.error(err);
     } finally {

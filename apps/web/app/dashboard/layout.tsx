@@ -8,19 +8,22 @@ import {
   Share2, 
   Settings, 
   LogOut, 
-  User 
+  User,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { initializeAuthClient, removeTokenCookie } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import { UserProvider, useUser } from "@/lib/user-context";
 
-export default function DashboardLayout({
+function DashboardLayoutContent({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { user, loading } = useUser();
 
   useEffect(() => {
     // Sync the api-client config with the token stored in cookies
@@ -80,7 +83,7 @@ export default function DashboardLayout({
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                     isActive
-                      ? "bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 shadow-inner"
+                       ? "bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 shadow-inner"
                       : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/50",
                     item.disabled && "opacity-50 cursor-not-allowed"
                   )}
@@ -103,26 +106,46 @@ export default function DashboardLayout({
           </nav>
         </div>
 
-        {/* Footer profile & Sign Out */}
+        {/* Footer profile, Upgrade Card & Sign Out */}
         <div className="space-y-4 pt-4 border-t border-slate-900">
+          {!loading && user && user.role !== "admin" && user.tier !== "pro" && (
+            <div className="mx-1 p-3 rounded-lg bg-gradient-to-br from-indigo-950/40 to-blue-950/40 border border-indigo-500/20 text-center space-y-2">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-indigo-300">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Free Plan Limits</span>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-normal">
+                Max 3 schedules, 1 platform connection, and 10 runs per schedule.
+              </p>
+              <Button
+                size="sm"
+                onClick={() => router.push("/dashboard/upgrade")}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[11px] font-bold h-7 cursor-pointer"
+              >
+                Upgrade to Pro
+              </Button>
+            </div>
+          )}
+
           <div className="flex items-center gap-3 px-2">
-            <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-slate-700 to-slate-800 flex items-center justify-center text-slate-300 font-semibold border border-slate-700 shadow-sm">
+            <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-slate-750 to-slate-850 flex items-center justify-center text-slate-300 font-semibold border border-slate-800 shadow-sm shrink-0">
               <User className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-slate-300 truncate">
-                Dashboard Session
+              <p className="text-xs font-semibold text-slate-200 truncate">
+                {loading ? "Loading..." : (user ? user.username : "Guest")}
               </p>
-              <p className="text-[10px] text-slate-500 truncate">
-                Active User
+              <p className="text-[10px] text-slate-500 truncate font-mono">
+                {loading ? "..." : (user?.role === "admin" ? "Administrator" : (user?.tier === "pro" ? "Pro Subscription" : "Free Account"))}
               </p>
+
             </div>
           </div>
 
           <Button
             variant="ghost"
             onClick={handleLogout}
-            className="w-full justify-start text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 gap-3 px-3 py-2 rounded-lg"
+            className="w-full justify-start text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 gap-3 px-3 py-2 rounded-lg cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>Sign Out</span>
@@ -137,3 +160,16 @@ export default function DashboardLayout({
     </div>
   );
 }
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <UserProvider>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </UserProvider>
+  );
+}
+

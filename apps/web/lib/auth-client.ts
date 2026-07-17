@@ -1,4 +1,4 @@
-import { client } from '@repo/api-client/client';
+import { client } from "@repo/api-client/client";
 
 // Client-side cookie helpers
 export function setTokenCookie(token: string) {
@@ -8,16 +8,16 @@ export function setTokenCookie(token: string) {
   // Configure the api-client with the token
   client.setConfig({
     headers: {
-      Authorization: `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
 }
 
 export function getTokenCookie(): string | null {
-  if (typeof document === 'undefined') return null;
-  const name = 'token=';
+  if (typeof document === "undefined") return null;
+  const name = "token=";
   const decodedCookie = decodeURIComponent(document.cookie);
-  const ca = decodedCookie.split(';');
+  const ca = decodedCookie.split(";");
   for (let i = 0; i < ca.length; i++) {
     const item = ca[i];
     if (item) {
@@ -31,22 +31,23 @@ export function getTokenCookie(): string | null {
 }
 
 export function removeTokenCookie() {
-  document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax';
+  document.cookie =
+    "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax";
   // Clear Authorization header in client
   client.setConfig({
     headers: {
-      Authorization: undefined
-    }
+      Authorization: undefined,
+    },
   });
 }
 
 export function initializeAuthClient() {
   const token = getTokenCookie();
-  if (token) {
-    client.setConfig({
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-  }
+  const baseUrl = typeof window !== "undefined" ? "" : (process.env.BACKEND_URL || "http://localhost:8081");
+  client.setConfig({
+    baseUrl,
+    headers: token ? {
+      Authorization: `Bearer ${token}`,
+    } : undefined,
+  });
 }

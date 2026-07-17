@@ -22,6 +22,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CreateScheduleDialog } from "@/components/create-schedule-dialog";
+import { useUser } from "@/lib/user-context";
+import { UpgradeModal } from "@/components/upgrade-modal";
 import { 
   CheckCircle2, 
   Calendar, 
@@ -37,40 +39,77 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
+interface Platform {
+  id: number;
+  name: string;
+  connected: boolean;
+  url?: string;
+}
+
+interface Schedule {
+  id: number;
+  social_media_id: number;
+  scheduled_at: string;
+  recurrence: number;
+  recurrence_unit: string;
+  max_runs: number;
+  runs_completed: number;
+  status: string;
+  prompt?: string | null;
+}
+
+interface ScheduleLog {
+  id: number;
+  created_at: string;
+  status: string;
+  post_content: string;
+  detail?: string | null;
+}
+
 function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { isAdmin, isPro } = useUser();
+
   const [linkedinConnected, setLinkedinConnected] = useState(false);
-  const [platforms, setPlatforms] = useState<any[]>([]);
-  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [facebookConnected, setFacebookConnected] = useState(false);
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
+
 
   // Schedules state
-  const [schedules, setSchedules] = useState<any[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loadingSchedules, setLoadingSchedules] = useState(true);
 
   // Creation Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Upgrade Modal state
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState("");
+
   // Logs Dialog state
   const [isLogsOpen, setIsLogsOpen] = useState(false);
-  const [selectedScheduleLogs, setSelectedScheduleLogs] = useState<any[]>([]);
+  const [selectedScheduleLogs, setSelectedScheduleLogs] = useState<ScheduleLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logsScheduleId, setLogsScheduleId] = useState<number | null>(null);
+
 
   const fetchStatus = async () => {
     try {
       const response = await getSocialConnectionStatusApiV1SocialMediaStatusGet();
       if (response.data) {
-        setPlatforms(response.data);
-        const linkedin = response.data.find((p: any) => p.name.toLowerCase() === "linkedin");
+        setPlatforms(response.data as Platform[]);
+        const linkedin = (response.data as Platform[]).find((p: Platform) => p.name.toLowerCase() === "linkedin");
         if (linkedin) {
           setLinkedinConnected(linkedin.connected);
+        }
+        const facebook = (response.data as Platform[]).find((p: Platform) => p.name.toLowerCase() === "facebook");
+        if (facebook) {
+          setFacebookConnected(facebook.connected);
         }
       }
     } catch (err) {
       console.error("Failed to fetch platform connection status", err);
-    } finally {
-      setLoadingStatus(false);
     }
   };
 
@@ -101,7 +140,13 @@ function DashboardContent() {
       toast.success("LinkedIn account connected successfully!", {
         icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
       });
-      // Clear query params
+      router.replace("/dashboard");
+      fetchStatus();
+    } else if (connected === "facebook") {
+      setFacebookConnected(true);
+      toast.success("Facebook account connected successfully!", {
+        icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
+      });
       router.replace("/dashboard");
       fetchStatus();
     }
@@ -113,8 +158,41 @@ function DashboardContent() {
       toast.error("Not authenticated. Please log in again.");
       return;
     }
-    // Redirect to backend connect route with the JWT token
-    window.location.href = `http://localhost:8081/api/v1/social-media/connect/linkedin?token=${token}`;
+    // Redirect to backend connect route with the JWT token via Next.js proxy
+    window.location.href = `/api/v1/social-media/connect/linkedin?token=${token}`;
+  };
+
+  const handleConnectFacebook = () => {
+    const token = getTokenCookie();
+    if (!token) {
+      toast.error("Not authenticated. Please log in again.");
+      return;
+    }
+    window.location.href = `/api/v1/social-media/connect/facebook?token=${token}`;
+  };
+
+  const handleDisconnectFacebook = async () => {
+    try {
+      const response = await disconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDelete({
+        path: {
+          platform: "facebook"
+        }
+      });
+      if (response.error) {
+        const errorBody = response.error as { detail?: string };
+        const detail = errorBody?.detail || "Failed to disconnect";
+        toast.error(typeof detail === "string" ? detail : JSON.stringify(detail));
+      } else {
+        toast.success("Facebook account disconnected successfully!", {
+          icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
+        });
+        setFacebookConnected(false);
+        fetchStatus();
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An unexpected error occurred while disconnecting.");
+    }
   };
 
   const handleDisconnectLinkedIn = async () => {
@@ -125,7 +203,8 @@ function DashboardContent() {
         }
       });
       if (response.error) {
-        const detail = (response.error as any)?.detail || "Failed to disconnect";
+        const errorBody = response.error as { detail?: string };
+        const detail = errorBody?.detail || "Failed to disconnect";
         toast.error(typeof detail === "string" ? detail : JSON.stringify(detail));
       } else {
         toast.success("LinkedIn account disconnected successfully!", {
@@ -151,7 +230,8 @@ function DashboardContent() {
       });
 
       if (response.error) {
-        const detail = (response.error as any)?.detail || "Failed to remove schedule";
+        const errorBody = response.error as { detail?: string };
+        const detail = errorBody?.detail || "Failed to remove schedule";
         toast.error(typeof detail === "string" ? detail : JSON.stringify(detail));
       } else {
         toast.success("Schedule removed successfully.");
@@ -184,8 +264,18 @@ function DashboardContent() {
     }
   };
 
-  // Filter connected platforms
-  const connectedPlatforms = platforms.filter(p => p.connected);
+  const handleNewScheduleClick = () => {
+    const hasUnlimitedAccess = isAdmin || isPro;
+    if (!hasUnlimitedAccess && schedules.length >= 3) {
+      setUpgradeReason("You have reached the maximum limit of 3 schedules for the Free plan.");
+      setIsUpgradeOpen(true);
+    } else {
+      setIsDialogOpen(true);
+    }
+  };
+
+  // Filter connected platforms, excluding the parent "Facebook" platform itself for scheduling
+  const connectedPlatforms = platforms.filter(p => p.connected && p.name.toLowerCase() !== "facebook");
 
   const getStatusBadge = (status: string) => {
     switch (status.toUpperCase()) {
@@ -230,7 +320,7 @@ function DashboardContent() {
         </div>
 
         <Button
-          onClick={() => setIsDialogOpen(true)}
+          onClick={handleNewScheduleClick}
           className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white gap-2 font-medium shadow-lg shadow-indigo-500/15 h-10 px-4 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
@@ -242,7 +332,15 @@ function DashboardContent() {
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
           onScheduleCreated={fetchSchedules}
+          schedules={schedules}
         />
+
+        <UpgradeModal
+          open={isUpgradeOpen}
+          onOpenChange={setIsUpgradeOpen}
+          reason={upgradeReason}
+        />
+
       </div>
 
       {/* Analytics/Stats Cards */}
@@ -256,9 +354,11 @@ function DashboardContent() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-100">
-              {linkedinConnected ? "1" : "0"} <span className="text-sm text-slate-500">/ 1</span>
+              {[(linkedinConnected ? 1 : 0), (facebookConnected ? 1 : 0)].reduce((a, b) => a + b, 0)} <span className="text-sm text-slate-500">/ 2</span>
             </div>
-            <p className="text-xs text-slate-500 mt-1">LinkedIn integration active</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {[linkedinConnected && "LinkedIn", facebookConnected && "Facebook"].filter(Boolean).join(" & ") || "No"} integration active
+            </p>
           </CardContent>
         </Card>
 
@@ -307,6 +407,7 @@ function DashboardContent() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* LinkedIn */}
             <div className="flex items-center justify-between p-3 rounded-lg border border-slate-800/80 bg-slate-950/20 backdrop-blur-sm">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-blue-600/10 text-blue-400 flex items-center justify-center border border-blue-500/10">
@@ -336,6 +437,42 @@ function DashboardContent() {
                 <Button 
                   className="bg-blue-600 hover:bg-blue-500 text-white h-9 px-3 font-medium transition-colors cursor-pointer"
                   onClick={handleConnectLinkedIn}
+                >
+                  Connect
+                </Button>
+              )}
+            </div>
+
+            {/* Facebook */}
+            <div className="flex items-center justify-between p-3 rounded-lg border border-slate-800/80 bg-slate-950/20 backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-blue-600/10 text-blue-400 flex items-center justify-center border border-blue-500/10">
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-200">Facebook</h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className={`inline-block w-2 h-2 rounded-full ${facebookConnected ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                    <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                      {facebookConnected ? "Connected" : "Disconnected"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              {facebookConnected ? (
+                <Button 
+                  variant="outline" 
+                  className="border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900 h-9 px-3 cursor-pointer"
+                  onClick={handleDisconnectFacebook}
+                >
+                  Disconnect
+                </Button>
+              ) : (
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-500 text-white h-9 px-3 font-medium transition-colors cursor-pointer"
+                  onClick={handleConnectFacebook}
                 >
                   Connect
                 </Button>
@@ -392,10 +529,10 @@ function DashboardContent() {
                             </span>
                           </div>
                           {schedule.prompt && (
-                            <p className="text-xs text-slate-400 mt-1 line-clamp-1 italic max-w-sm">
-                              Prompt: "{schedule.prompt}"
-                            </p>
-                          )}
+                             <p className="text-xs text-slate-400 mt-1 line-clamp-1 italic max-w-sm">
+                               Prompt: &ldquo;{schedule.prompt}&rdquo;
+                             </p>
+                           )}
                           <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-400">
                             <Clock className="w-3.5 h-3.5 text-slate-500" />
                             <span>

@@ -115,6 +115,60 @@ make seed
 
 ---
 
+## 🐳 Running with Docker
+
+You can run the entire stack (Next.js frontend, FastAPI backend, and a PostgreSQL database) inside Docker using Docker Compose.
+
+### 1. Configure root environment variables
+
+Create a `.env` file in the project root directory (next to `docker-compose.yml`):
+
+```env
+# Database Settings (handled automatically by Docker Compose postgres service)
+DATABASE_URL="postgresql+asyncpg://postgres:123456@postgres:5432/scheduler"
+
+# Authentication & JWT
+JWT_SECRET="your_secure_jwt_secret_key"
+
+# Social Media Integration (LinkedIn / Facebook OAuth)
+LINKEDIN_CLIENT_ID="your_linkedin_client_id"
+LINKEDIN_CLIENT_SECRET="your_linkedin_client_secret"
+LINKEDIN_REDIRECT_URI="http://localhost:8081/api/v1/social-media/connect/linkedin/callback"
+
+FACEBOOK_CLIENT_ID="your_facebook_client_id"
+FACEBOOK_CLIENT_SECRET="your_facebook_client_secret"
+FACEBOOK_REDIRECT_URI="http://localhost:8081/api/v1/social-media/connect/facebook/callback"
+
+# AI Agent Configuration
+OPENROUTER_API_KEY="your-openrouter-key"
+OPENROUTER_MODEL="openai/gpt-4o"
+SUPERMEMORY_API_KEY="your_supermemory_api_key_here"
+```
+
+### 2. Build and start services
+
+Run the following command from the project root:
+
+```bash
+docker compose up --build -d
+```
+
+This will build the images and run three containers:
+*   **PostgreSQL**: Exposed locally on port `5435`
+*   **FastAPI Backend**: Exposed locally on port `8081` (migrations run automatically on start)
+*   **Next.js Frontend**: Exposed locally on port `3000`
+
+### 3. Seed the database (initial run only)
+
+To populate the database with the initial social media platform definitions inside the running container, run:
+
+```bash
+docker compose exec backend sh -c "PYTHONPATH=src python -m core.seed"
+```
+
+---
+
+
 ## 💻 Development
 
 Run all services concurrently from the repo root:

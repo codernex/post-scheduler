@@ -1,0 +1,32 @@
+# Exclude node_modules
+node_modules
+**/node_modules
+
+# Exclude Next.js build outputs
+.next
+**/.next
+out
+**/out
+
+# Exclude Python virtual environments
+.venv
+**/.venv
+__pycache__
+**/__pycache__
+*.pyc
+
+# Exclude Turbo and other build caches
+.turbo
+.vercel
+dist
+build
+
+# Exclude env files and Git files
+.env
+.env.*
+.git
+.github
+README.md
+walkthrough.md
+implementation_plan.md
+task.md

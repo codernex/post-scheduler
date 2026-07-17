@@ -1,0 +1,53 @@
+# docker-compose.yml
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5435:5432"
+    environment:
+      - POSTGRES_DB=scheduler
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:123456@postgres:5432/scheduler
+      - JWT_SECRET=${JWT_SECRET}
+      - LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID}
+      - LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET}
+      - LINKEDIN_REDIRECT_URI=${LINKEDIN_REDIRECT_URI}
+      - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
+      - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
+      - FACEBOOK_REDIRECT_URI=${FACEBOOK_REDIRECT_URI}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL}
+      - SUPERMEMORY_API_KEY=${SUPERMEMORY_API_KEY}
+    depends_on:
+      - postgres
+    restart: always
+
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_URL=http://backend:8081
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  postgres_data:
+

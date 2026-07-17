@@ -33,22 +33,59 @@ import {
 import React, { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CreateScheduleDialog } from "@/components/create-schedule-dialog";
+import { useUser } from "@/lib/user-context";
+import { UpgradeModal } from "@/components/upgrade-modal";
 
 type FilterTab = "ALL" | "SCHEDULED" | "PUBLISHED" | "FAILED";
 
+interface Platform {
+  id: number;
+  name: string;
+  connected: boolean;
+  url?: string;
+}
+
+interface Schedule {
+  id: number;
+  social_media_id: number;
+  scheduled_at: string;
+  recurrence: number;
+  recurrence_unit: string;
+  max_runs: number;
+  runs_completed: number;
+  status: string;
+  prompt?: string | null;
+  created_at: string;
+}
+
+interface ScheduleLog {
+  id: number;
+  created_at: string;
+  status: string;
+  post_content: string;
+  detail?: string | null;
+}
+
 function SchedulesContent() {
-  const [platforms, setPlatforms] = useState<any[]>([]);
-  const [schedules, setSchedules] = useState<any[]>([]);
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const { isAdmin, isPro } = useUser();
+
+
 
   // Creation Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Upgrade Modal state
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState("");
+
   // Logs Dialog state
   const [isLogsOpen, setIsLogsOpen] = useState(false);
-  const [selectedScheduleLogs, setSelectedScheduleLogs] = useState<any[]>([]);
+  const [selectedScheduleLogs, setSelectedScheduleLogs] = useState<ScheduleLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logsScheduleId, setLogsScheduleId] = useState<number | null>(null);
 
@@ -61,10 +98,10 @@ function SchedulesContent() {
       ]);
       
       if (platformRes.data) {
-        setPlatforms(platformRes.data);
+        setPlatforms(platformRes.data as Platform[]);
       }
       if (scheduleRes.data) {
-        setSchedules(scheduleRes.data);
+        setSchedules(scheduleRes.data as Schedule[]);
       }
     } catch (err) {
       console.error("Failed to load page data", err);
@@ -88,7 +125,8 @@ function SchedulesContent() {
       });
 
       if (response.error) {
-        const detail = (response.error as any)?.detail || "Failed to remove schedule";
+        const errorBody = response.error as { detail?: string };
+        const detail = errorBody?.detail || "Failed to remove schedule";
         toast.error(typeof detail === "string" ? detail : JSON.stringify(detail));
       } else {
         toast.success("Schedule removed successfully.");
@@ -111,13 +149,23 @@ function SchedulesContent() {
         }
       });
       if (response.data) {
-        setSelectedScheduleLogs(response.data);
+        setSelectedScheduleLogs(response.data as ScheduleLog[]);
       }
     } catch (err) {
       console.error("Failed to fetch logs", err);
       toast.error("Failed to load schedule history logs.");
     } finally {
       setLoadingLogs(false);
+    }
+  };
+
+  const handleNewScheduleClick = () => {
+    const hasUnlimitedAccess = isAdmin || isPro;
+    if (!hasUnlimitedAccess && schedules.length >= 3) {
+      setUpgradeReason("You have reached the maximum limit of 3 schedules for the Free plan.");
+      setIsUpgradeOpen(true);
+    } else {
+      setIsDialogOpen(true);
     }
   };
 
@@ -184,7 +232,7 @@ function SchedulesContent() {
         </div>
 
         <Button
-          onClick={() => setIsDialogOpen(true)}
+          onClick={handleNewScheduleClick}
           className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white gap-2 font-medium shadow-lg shadow-indigo-500/15 h-10 px-4 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
@@ -196,6 +244,13 @@ function SchedulesContent() {
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
           onScheduleCreated={fetchStatusAndSchedules}
+          schedules={schedules}
+        />
+
+        <UpgradeModal
+          open={isUpgradeOpen}
+          onOpenChange={setIsUpgradeOpen}
+          reason={upgradeReason}
         />
       </div>
 
@@ -286,7 +341,7 @@ function SchedulesContent() {
                           </div>
                           {schedule.prompt && (
                             <p className="text-xs text-slate-400 mt-1 line-clamp-1 italic max-w-xs" title={schedule.prompt}>
-                              Prompt: "{schedule.prompt}"
+                              Prompt: &ldquo;{schedule.prompt}&rdquo;
                             </p>
                           )}
                         </td>

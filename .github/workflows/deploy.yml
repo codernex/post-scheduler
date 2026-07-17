@@ -1,0 +1,50 @@
+name: Deploy to DigitalOcean Droplet
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Droplet via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          script: |
+            # Navigate to the application directory on the droplet
+            cd ${{ secrets.DO_APP_DIR }}
+
+            # Pull the latest changes from main branch
+            git pull origin main
+
+            # Create or update the .env file with values from GitHub Secrets
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}" >> .env
+            echo "LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }}" >> .env
+            echo "LINKEDIN_REDIRECT_URI=${{ secrets.LINKEDIN_REDIRECT_URI }}" >> .env
+            echo "FACEBOOK_CLIENT_ID=${{ secrets.FACEBOOK_CLIENT_ID }}" >> .env
+            echo "FACEBOOK_CLIENT_SECRET=${{ secrets.FACEBOOK_CLIENT_SECRET }}" >> .env
+            echo "FACEBOOK_REDIRECT_URI=${{ secrets.FACEBOOK_REDIRECT_URI }}" >> .env
+            echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> .env
+            echo "OPENROUTER_MODEL=${{ secrets.OPENROUTER_MODEL }}" >> .env
+            echo "SUPERMEMORY_API_KEY=${{ secrets.SUPERMEMORY_API_KEY }}" >> .env
+            echo "BACKEND_URL=http://backend:8081" >> .env
+
+
+
+            # Rebuild and restart the Docker containers
+            docker compose down
+            docker compose up --build -d
+
+            # Clean up unused Docker images to save disk space
+            docker image prune -f
