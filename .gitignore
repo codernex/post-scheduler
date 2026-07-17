@@ -33,8 +33,6 @@ dist
 *.tsbuildinfo
 next-env.d.ts
 
-# Generated API client (regenerated via `pnpm generate`)
-packages/api-client/src/client/
 
 # Debug & logs
 npm-debug.log*
