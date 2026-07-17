@@ -39,6 +39,7 @@ jobs:
             echo "OPENROUTER_MODEL=${{ secrets.OPENROUTER_MODEL }}" >> .env
             echo "SUPERMEMORY_API_KEY=${{ secrets.SUPERMEMORY_API_KEY }}" >> .env
             echo "BACKEND_URL=http://backend:8081" >> .env
+            echo "FRONTEND_URL=https://post-scheduler.codernex.dev" >> .env
             echo "ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}" >> .env
             echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}" >> .env
             echo "NEXT_PUBLIC_GA_ID=${{ secrets.G_TAG }}" >> .env

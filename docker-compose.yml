@@ -33,6 +33,7 @@ services:
       - SUPERMEMORY_API_KEY=${SUPERMEMORY_API_KEY}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       - postgres
     restart: always

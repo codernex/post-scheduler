@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 import  utils as utils
 from  core.database import get_db
+from  core.config import settings
 from  core.dependencies import get_current_user
 from  models import User, ApiToken, SocialMedia
 from  dto import SocialPlatformStatus
@@ -102,7 +103,7 @@ async def linkedin_callback(
 
     await db.commit()
 
-    return RedirectResponse(url="http://localhost:3000/dashboard?connected=linkedin")
+    return RedirectResponse(url=f"{settings.FRONTEND_URL}/dashboard?connected=linkedin")
 
 
 @social_router.get("/connect/facebook")
@@ -189,7 +190,7 @@ async def facebook_callback(
 
     await db.commit()
 
-    return RedirectResponse(url="http://localhost:3000/dashboard?connected=facebook")
+    return RedirectResponse(url=f"{settings.FRONTEND_URL}/dashboard?connected=facebook")
 
 @social_router.get("/status", response_model=list[SocialPlatformStatus])
 async def get_social_connection_status(

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     FACEBOOK_REDIRECT_URI: str
     JWT_SECRET: str
     ALGORITHM: str = "HS256"
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # LLM & Memory
     OPENROUTER_API_KEY: str
