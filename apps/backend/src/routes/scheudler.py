@@ -12,6 +12,7 @@ scheduler_router = APIRouter(
 )
 
 
+@scheduler_router.post("", tags=["Scheduler"], response_model=ScheduleResponse)
 @scheduler_router.post("/", tags=["Scheduler"], response_model=ScheduleResponse)
 async def create_schedule(payload: CreateSchedulePayload, db: AsyncSession = Depends(get_db),
                           current_user: User = Depends(get_current_user)):
@@ -23,6 +24,7 @@ async def create_schedule(payload: CreateSchedulePayload, db: AsyncSession = Dep
     return scheduler
 
 
+@scheduler_router.get("", tags=["Scheduler"], response_model=list[ScheduleResponse])
 @scheduler_router.get("/", tags=["Scheduler"], response_model=list[ScheduleResponse])
 async def get_schedule(db: AsyncSession = Depends(get_db),
                         current_user: User = Depends(get_current_user)):

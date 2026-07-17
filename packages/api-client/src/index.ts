@@ -4,7 +4,7 @@ import { client } from "./client/client.gen";
 const isBrowser = typeof window !== "undefined";
 
 // Determine the correct base URL based on runtime environment
-const defaultBaseUrl = isBrowser ? "" : (process.env.BACKEND_URL || "http://localhost:8081");
+const defaultBaseUrl = isBrowser ? window.location.origin : (process.env.BACKEND_URL || "http://localhost:8081");
 
 // Helper to retrieve the JWT token from cookies on browser request
 function getCookieToken(): string | null {
@@ -24,16 +24,26 @@ function getCookieToken(): string | null {
   return null;
 }
 
-const token = getCookieToken();
-
 // Auto-configure the generated API client base settings
 client.setConfig({
   baseUrl: defaultBaseUrl,
-  headers: token
-    ? {
-        Authorization: `Bearer ${token}`,
-      }
-    : undefined,
+});
+
+// Dynamically inject the token header on every request
+client.interceptors.request.use((request) => {
+  const token = getCookieToken();
+  if (token) {
+    const req = request as any;
+    if (!req.headers) {
+      req.headers = {};
+    }
+    if (req.headers instanceof Headers) {
+      req.headers.set("Authorization", `Bearer ${token}`);
+    } else {
+      req.headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+  return request;
 });
 
 export { client } from "./client/client.gen";

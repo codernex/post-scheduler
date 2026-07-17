@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { CreateScheduleApiV1SchedulerPostData, CreateScheduleApiV1SchedulerPostErrors, CreateScheduleApiV1SchedulerPostResponses, DeleteScheduleApiV1SchedulerScheduleIdDeleteData, DeleteScheduleApiV1SchedulerScheduleIdDeleteErrors, DeleteScheduleApiV1SchedulerScheduleIdDeleteResponses, DisconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDeleteData, DisconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDeleteErrors, DisconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDeleteResponses, FacebookCallbackApiV1SocialMediaConnectFacebookCallbackGetData, FacebookCallbackApiV1SocialMediaConnectFacebookCallbackGetErrors, FacebookCallbackApiV1SocialMediaConnectFacebookCallbackGetResponses, FacebookConnectApiV1SocialMediaConnectFacebookGetData, FacebookConnectApiV1SocialMediaConnectFacebookGetErrors, FacebookConnectApiV1SocialMediaConnectFacebookGetResponses, GetScheduleApiV1SchedulerGetData, GetScheduleApiV1SchedulerGetErrors, GetScheduleApiV1SchedulerGetResponses, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetData, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetErrors, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetResponses, GetSocialConnectionStatusApiV1SocialMediaStatusGetData, GetSocialConnectionStatusApiV1SocialMediaStatusGetErrors, GetSocialConnectionStatusApiV1SocialMediaStatusGetResponses, LinkedinCallbackApiV1SocialMediaConnectLinkedinCallbackGetData, LinkedinCallbackApiV1SocialMediaConnectLinkedinCallbackGetErrors, LinkedinCallbackApiV1SocialMediaConnectLinkedinCallbackGetResponses, LinkedinConnectApiV1SocialMediaConnectLinkedinGetData, LinkedinConnectApiV1SocialMediaConnectLinkedinGetErrors, LinkedinConnectApiV1SocialMediaConnectLinkedinGetResponses, ListContactMessagesApiV1ContactListGetData, ListContactMessagesApiV1ContactListGetErrors, ListContactMessagesApiV1ContactListGetResponses, LoginApiV1AuthLoginPostData, LoginApiV1AuthLoginPostErrors, LoginApiV1AuthLoginPostResponses, MeApiV1AuthMeGetData, MeApiV1AuthMeGetErrors, MeApiV1AuthMeGetResponses, SignupApiV1AuthSignupPostData, SignupApiV1AuthSignupPostErrors, SignupApiV1AuthSignupPostResponses, SubmitContactFormApiV1ContactSubmitPostData, SubmitContactFormApiV1ContactSubmitPostErrors, SubmitContactFormApiV1ContactSubmitPostResponses, UpgradeUserApiV1UsersUpgradePostData, UpgradeUserApiV1UsersUpgradePostErrors, UpgradeUserApiV1UsersUpgradePostResponses } from './types.gen';
+import type { CreateScheduleApiV1SchedulerPost2Data, CreateScheduleApiV1SchedulerPost2Errors, CreateScheduleApiV1SchedulerPost2Responses, CreateScheduleApiV1SchedulerPostData, CreateScheduleApiV1SchedulerPostErrors, CreateScheduleApiV1SchedulerPostResponses, DeleteScheduleApiV1SchedulerScheduleIdDeleteData, DeleteScheduleApiV1SchedulerScheduleIdDeleteErrors, DeleteScheduleApiV1SchedulerScheduleIdDeleteResponses, DisconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDeleteData, DisconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDeleteErrors, DisconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDeleteResponses, FacebookCallbackApiV1SocialMediaConnectFacebookCallbackGetData, FacebookCallbackApiV1SocialMediaConnectFacebookCallbackGetErrors, FacebookCallbackApiV1SocialMediaConnectFacebookCallbackGetResponses, FacebookConnectApiV1SocialMediaConnectFacebookGetData, FacebookConnectApiV1SocialMediaConnectFacebookGetErrors, FacebookConnectApiV1SocialMediaConnectFacebookGetResponses, GetScheduleApiV1SchedulerGet2Data, GetScheduleApiV1SchedulerGet2Errors, GetScheduleApiV1SchedulerGet2Responses, GetScheduleApiV1SchedulerGetData, GetScheduleApiV1SchedulerGetErrors, GetScheduleApiV1SchedulerGetResponses, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetData, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetErrors, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetResponses, GetSocialConnectionStatusApiV1SocialMediaStatusGetData, GetSocialConnectionStatusApiV1SocialMediaStatusGetErrors, GetSocialConnectionStatusApiV1SocialMediaStatusGetResponses, LinkedinCallbackApiV1SocialMediaConnectLinkedinCallbackGetData, LinkedinCallbackApiV1SocialMediaConnectLinkedinCallbackGetErrors, LinkedinCallbackApiV1SocialMediaConnectLinkedinCallbackGetResponses, LinkedinConnectApiV1SocialMediaConnectLinkedinGetData, LinkedinConnectApiV1SocialMediaConnectLinkedinGetErrors, LinkedinConnectApiV1SocialMediaConnectLinkedinGetResponses, ListContactMessagesApiV1ContactListGetData, ListContactMessagesApiV1ContactListGetErrors, ListContactMessagesApiV1ContactListGetResponses, LoginApiV1AuthLoginPostData, LoginApiV1AuthLoginPostErrors, LoginApiV1AuthLoginPostResponses, MeApiV1AuthMeGetData, MeApiV1AuthMeGetErrors, MeApiV1AuthMeGetResponses, SignupApiV1AuthSignupPostData, SignupApiV1AuthSignupPostErrors, SignupApiV1AuthSignupPostResponses, SubmitContactFormApiV1ContactSubmitPostData, SubmitContactFormApiV1ContactSubmitPostErrors, SubmitContactFormApiV1ContactSubmitPostResponses, UpgradeUserApiV1UsersUpgradePostData, UpgradeUserApiV1UsersUpgradePostErrors, UpgradeUserApiV1UsersUpgradePostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -112,6 +112,28 @@ export const getScheduleApiV1SchedulerGet = <ThrowOnError extends boolean = fals
 export const createScheduleApiV1SchedulerPost = <ThrowOnError extends boolean = false>(options: Options<CreateScheduleApiV1SchedulerPostData, ThrowOnError>): RequestResult<CreateScheduleApiV1SchedulerPostResponses, CreateScheduleApiV1SchedulerPostErrors, ThrowOnError> => (options.client ?? client).post<CreateScheduleApiV1SchedulerPostResponses, CreateScheduleApiV1SchedulerPostErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/scheduler/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Schedule
+ */
+export const getScheduleApiV1SchedulerGet2 = <ThrowOnError extends boolean = false>(options?: Options<GetScheduleApiV1SchedulerGet2Data, ThrowOnError>): RequestResult<GetScheduleApiV1SchedulerGet2Responses, GetScheduleApiV1SchedulerGet2Errors, ThrowOnError> => (options?.client ?? client).get<GetScheduleApiV1SchedulerGet2Responses, GetScheduleApiV1SchedulerGet2Errors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/scheduler',
+    ...options
+});
+
+/**
+ * Create Schedule
+ */
+export const createScheduleApiV1SchedulerPost2 = <ThrowOnError extends boolean = false>(options: Options<CreateScheduleApiV1SchedulerPost2Data, ThrowOnError>): RequestResult<CreateScheduleApiV1SchedulerPost2Responses, CreateScheduleApiV1SchedulerPost2Errors, ThrowOnError> => (options.client ?? client).post<CreateScheduleApiV1SchedulerPost2Responses, CreateScheduleApiV1SchedulerPost2Errors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/scheduler',
     ...options,
     headers: {
         'Content-Type': 'application/json',

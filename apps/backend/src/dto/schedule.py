@@ -21,7 +21,8 @@ class ScheduleStatus(str, Enum):
     SCHEDULED = "SCHEDULED"
     PUBLISHED = "PUBLISHED"
     FAILED = "FAILED"
-    PENDING="PENDING"
+    PENDING = "PENDING"
+    FINISHED = "FINISHED"
     # Add any other statuses you might use (e.g., CANCELED, DRAFT)
 
 
