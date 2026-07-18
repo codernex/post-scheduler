@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str
     OPENROUTER_MODEL: str = "openai/gpt-4o"
     SUPERMEMORY_API_KEY: str
+    RATE_LIMIT_CALLS_PER_MINUTE: int = 60
 
     model_config = SettingsConfigDict(env_file=_env_files, case_sensitive=True)
 

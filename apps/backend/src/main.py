@@ -56,8 +56,16 @@ async def lifespan(app: FastAPI):
 # ---------------------------------------------------------
 app = FastAPI(title="Social media post scheduler", version="1.0", lifespan=lifespan)
 
-# Setup CORS origins dynamically from configuration settings
+# Setup Rate Limiting Middleware
 from core.config import settings
+from utils.rate_limiter import RateLimitMiddleware
+
+app.add_middleware(
+    RateLimitMiddleware,
+    calls_per_minute=settings.RATE_LIMIT_CALLS_PER_MINUTE
+)
+
+# Setup CORS origins dynamically from configuration settings
 origins = ["http://localhost:3000"]
 if settings.FRONTEND_URL and settings.FRONTEND_URL not in origins:
     origins.append(settings.FRONTEND_URL)
