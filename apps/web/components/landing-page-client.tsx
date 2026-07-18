@@ -316,6 +316,9 @@ Stay tuned for more updates! #AI #Automation #WebDev`;
         )}
       </header>
 
+      {/* Main Content Landmark */}
+      <main>
+
       {/* Hero Section */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 md:pt-32 md:pb-24">
         <div className="text-center space-y-8 max-w-4xl mx-auto">
@@ -528,7 +531,7 @@ Stay tuned for more updates! #AI #Automation #WebDev`;
                   <div className="inline-flex h-12 w-12 rounded-2xl bg-slate-900 border border-slate-800 items-center justify-center text-slate-600">
                     <Eye className="h-5 w-5" />
                   </div>
-                  <h4 className="text-sm font-bold text-slate-400">Post Preview Card</h4>
+                  <p className="text-sm font-bold text-slate-400">Post Preview Card</p>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto">
                     Once you trigger the schedule run, the AI output preview will render here with simulated social mockups.
                   </p>
@@ -776,6 +779,8 @@ Stay tuned for more updates! #AI #Automation #WebDev`;
         </div>
       </section>
 
+      </main>
+
       {/* Footer */}
       <footer className="border-t border-slate-900 bg-slate-950 py-10 text-slate-600 text-xs text-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
@@ -784,17 +789,17 @@ Stay tuned for more updates! #AI #Automation #WebDev`;
             Designed and built for autonomous multi-platform publishing. Open-source under the Apache-2.0 License.
           </p>
           <div className="flex flex-wrap justify-center gap-6 pt-2 text-slate-500">
-            <a href="https://github.com/codernex/post-scheduler" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300">GitHub Repository</a>
-            <span className="text-slate-800">•</span>
-            <a href="#features" className="hover:text-slate-300">Features</a>
-            <span className="text-slate-800">•</span>
-            <a href="#pricing" className="hover:text-slate-300">Pricing</a>
-            <span className="text-slate-800">•</span>
-            <a href="#contact" className="hover:text-slate-300">Contact</a>
-            <span className="text-slate-800">•</span>
-            <Link href="/privacy" className="hover:text-slate-300">Privacy Policy</Link>
-            <span className="text-slate-800">•</span>
-            <Link href="/terms" className="hover:text-slate-300">Terms of Service</Link>
+            <a href="https://github.com/codernex/post-scheduler" target="_blank" rel="noopener noreferrer" className="underline decoration-slate-800 hover:decoration-slate-400 hover:text-slate-300 transition-colors">GitHub Repository</a>
+            <span className="text-slate-850">•</span>
+            <a href="#features" className="hover:text-slate-300 underline decoration-slate-800 hover:decoration-slate-400 transition-colors">Features</a>
+            <span className="text-slate-850">•</span>
+            <a href="#pricing" className="hover:text-slate-300 underline decoration-slate-800 hover:decoration-slate-400 transition-colors">Pricing</a>
+            <span className="text-slate-850">•</span>
+            <a href="#contact" className="hover:text-slate-300 underline decoration-slate-800 hover:decoration-slate-400 transition-colors">Contact</a>
+            <span className="text-slate-850">•</span>
+            <Link href="/privacy" className="hover:text-slate-300 underline decoration-slate-800 hover:decoration-slate-400 transition-colors">Privacy Policy</Link>
+            <span className="text-slate-850">•</span>
+            <Link href="/terms" className="hover:text-slate-300 underline decoration-slate-800 hover:decoration-slate-400 transition-colors">Terms of Service</Link>
           </div>
         </div>
       </footer>

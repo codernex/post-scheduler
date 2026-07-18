@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
@@ -9,7 +9,9 @@ import {
   Settings, 
   LogOut, 
   User,
-  Sparkles
+  Sparkles,
+  Menu,
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { initializeAuthClient, removeTokenCookie } from "@/lib/auth-client";
@@ -24,6 +26,7 @@ function DashboardLayoutContent({
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading } = useUser();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     // Sync the api-client config with the token stored in cookies
@@ -43,32 +46,41 @@ function DashboardLayoutContent({
     { name: "Settings", href: "/dashboard/settings", icon: Settings, disabled: true },
   ];
 
-  return (
-    <div className="flex h-screen w-full bg-slate-950 text-slate-100 overflow-hidden font-sans">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-slate-900 bg-slate-900/40 backdrop-blur-md flex flex-col justify-between p-4 flex-shrink-0">
+  const renderSidebarContent = (isMobile = false) => {
+    return (
+      <div className="flex flex-col h-full justify-between">
         <div className="space-y-6">
           {/* Logo */}
-          <div className="flex items-center gap-2.5 px-2 py-1.5">
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <svg
-                className="h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-lg bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <svg
+                  className="h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-slate-50 to-slate-200 bg-clip-text text-transparent">
+                PostScheduler
+              </span>
             </div>
-            <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-slate-50 to-slate-200 bg-clip-text text-transparent">
-              PostScheduler
-            </span>
+            {isMobile && (
+              <button 
+                onClick={() => setMobileOpen(false)}
+                className="p-1 rounded-md text-slate-400 hover:text-white focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
           </div>
 
           {/* Navigation Links */}
@@ -83,13 +95,17 @@ function DashboardLayoutContent({
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                     isActive
-                       ? "bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 shadow-inner"
+                      ? "bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 shadow-inner"
                       : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/50",
                     item.disabled && "opacity-50 cursor-not-allowed"
                   )}
                   onClick={(e) => {
                     if (item.disabled) {
                       e.preventDefault();
+                    } else {
+                      if (isMobile) {
+                        setMobileOpen(false);
+                      }
                     }
                   }}
                 >
@@ -119,7 +135,10 @@ function DashboardLayoutContent({
               </p>
               <Button
                 size="sm"
-                onClick={() => router.push("/dashboard/upgrade")}
+                onClick={() => {
+                  router.push("/dashboard/upgrade");
+                  if (isMobile) setMobileOpen(false);
+                }}
                 className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[11px] font-bold h-7 cursor-pointer"
               >
                 Upgrade to Pro
@@ -138,7 +157,6 @@ function DashboardLayoutContent({
               <p className="text-[10px] text-slate-500 truncate font-mono">
                 {loading ? "..." : (user?.role === "admin" ? "Administrator" : (user?.tier === "pro" ? "Pro Subscription" : "Free Account"))}
               </p>
-
             </div>
           </div>
 
@@ -151,7 +169,58 @@ function DashboardLayoutContent({
             <span>Sign Out</span>
           </Button>
         </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col md:flex-row h-screen w-full bg-slate-950 text-slate-100 overflow-hidden font-sans">
+      {/* Mobile Top Bar */}
+      <div className="md:hidden flex items-center justify-between border-b border-slate-900 bg-slate-950/80 backdrop-blur-md px-4 py-3 sticky top-0 z-40">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <svg
+              className="h-4.5 w-4.5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <span className="font-bold text-sm tracking-tight text-white">PostScheduler</span>
+        </div>
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="p-1 rounded-md text-slate-400 hover:text-white focus:outline-none"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 border-r border-slate-900 bg-slate-900/40 backdrop-blur-md flex-col justify-between p-4 flex-shrink-0">
+        {renderSidebarContent(false)}
       </aside>
+
+      {/* Mobile Drawer Overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          <div 
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300" 
+            onClick={() => setMobileOpen(false)} 
+          />
+          <aside className="relative w-64 h-full border-r border-slate-900 bg-slate-900 p-4 z-50 flex flex-col justify-between">
+            {renderSidebarContent(true)}
+          </aside>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-full bg-slate-950 overflow-y-auto">
@@ -172,4 +241,3 @@ export default function DashboardLayout({
     </UserProvider>
   );
 }
-
