@@ -105,6 +105,7 @@ dependencies = [
     { name = "langchain-core" },
     { name = "langchain-google-genai" },
     { name = "langchain-openai" },
+    { name = "mailtrap" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyjwt" },
@@ -128,6 +129,7 @@ requires-dist = [
     { name = "langchain-core", specifier = ">=1.4.8" },
     { name = "langchain-google-genai", specifier = ">=4.2.6" },
     { name = "langchain-openai", specifier = ">=1.3.3" },
+    { name = "mailtrap", specifier = ">=2.6.1" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyjwt", specifier = ">=2.13.0" },
@@ -781,6 +783,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d4/8b/a56b97a3b8a94f850fe2ec42351d4c508cc6bd7ca96644906c311e32ec5b/langsmith-0.9.7.tar.gz", hash = "sha256:40f8a66a466a7abd991a9df1b50de0a9d30c48ee0d3da46ce00516b68e41c9d7", size = 4711142, upload-time = "2026-07-02T20:11:09.619Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/95/0abb8647123c9ebbb31162bcdba3183f5f3d3bb2f752ef3d777ab715e88c/langsmith-0.9.7-py3-none-any.whl", hash = "sha256:a5ff9179b77eb0c3a0129294d30924eab13e51e2720f374372dbbc014c892911", size = 671052, upload-time = "2026-07-02T20:11:07.702Z" },
+]
+
+[[package]]
+name = "mailtrap"
+version = "2.6.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a5/9d/d0fc15461cf4df5f4296f2256726523a9e359e2f99f617bdf16814a5f0c9/mailtrap-2.6.1.tar.gz", hash = "sha256:8b97fe66717dcd8ec4484edd528716c8bbd0954d6b2a91860c2aed7df4ded626", size = 31941, upload-time = "2026-07-09T13:24:42.794Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0b/6b/e55f14fd4e3b4f8bee51963458c0017c019dc9cb247e57acc5f46680d6d8/mailtrap-2.6.1-py3-none-any.whl", hash = "sha256:ab87f03d88b24882b162ede48d3a2a84bf39c45add34522ef1fdfabb4bc425e3", size = 47911, upload-time = "2026-07-09T13:24:41.755Z" },
 ]
 
 [[package]]

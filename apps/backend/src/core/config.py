@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     SUPERMEMORY_API_KEY: str
     RATE_LIMIT_CALLS_PER_MINUTE: int = 60
 
+    # Mailtrap Email settings
+    MAILTRAP_API_TOKEN: str = ""
+    SMTP_FROM_EMAIL: str = "no-reply@post-scheduler.codernex.dev"
+    SMTP_FROM_NAME: str = "PostScheduler"
+
     model_config = SettingsConfigDict(env_file=_env_files, case_sensitive=True)
 
 

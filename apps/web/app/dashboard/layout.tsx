@@ -11,7 +11,8 @@ import {
   User,
   Sparkles,
   Menu,
-  X
+  X,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { initializeAuthClient, removeTokenCookie } from "@/lib/auth-client";
@@ -45,6 +46,10 @@ function DashboardLayoutContent({
     { name: "Platforms", href: "/dashboard/platforms", icon: Share2, disabled: true },
     { name: "Settings", href: "/dashboard/settings", icon: Settings, disabled: true },
   ];
+
+  if (user && user.role === "admin") {
+    navItems.push({ name: "Admin Inbox", href: "/dashboard/contacts", icon: MessageSquare, disabled: false });
+  }
 
   const renderSidebarContent = (isMobile = false) => {
     return (

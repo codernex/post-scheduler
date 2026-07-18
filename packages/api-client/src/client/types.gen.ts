@@ -23,6 +23,16 @@ export type ContactCreate = {
 };
 
 /**
+ * ContactReply
+ */
+export type ContactReply = {
+    /**
+     * Reply
+     */
+    reply: string;
+};
+
+/**
  * ContactResponse
  */
 export type ContactResponse = {
@@ -46,6 +56,18 @@ export type ContactResponse = {
      * Created At
      */
     created_at: string;
+    /**
+     * Is Replied
+     */
+    is_replied: boolean;
+    /**
+     * Reply Content
+     */
+    reply_content?: string | null;
+    /**
+     * Replied At
+     */
+    replied_at?: string | null;
 };
 
 /**
@@ -850,3 +872,36 @@ export type ListContactMessagesApiV1ContactListGetResponses = {
 };
 
 export type ListContactMessagesApiV1ContactListGetResponse = ListContactMessagesApiV1ContactListGetResponses[keyof ListContactMessagesApiV1ContactListGetResponses];
+
+export type ReplyToContactMessageApiV1ContactMessageIdReplyPostData = {
+    body: ContactReply;
+    path: {
+        /**
+         * Message Id
+         */
+        message_id: number;
+    };
+    query?: {
+        /**
+         * Token
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/contact/{message_id}/reply';
+};
+
+export type ReplyToContactMessageApiV1ContactMessageIdReplyPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ReplyToContactMessageApiV1ContactMessageIdReplyPostError = ReplyToContactMessageApiV1ContactMessageIdReplyPostErrors[keyof ReplyToContactMessageApiV1ContactMessageIdReplyPostErrors];
+
+export type ReplyToContactMessageApiV1ContactMessageIdReplyPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
