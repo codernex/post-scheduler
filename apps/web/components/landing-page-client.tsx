@@ -200,6 +200,7 @@ Stay tuned for more updates! #AI #Automation #WebDev`;
             <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
             <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
             <a href="#contact" className="hover:text-white transition-colors">Contact</a>
+            <Link href="/blog" className="hover:text-white transition-colors">Blog</Link>
             <a 
               href="https://github.com/codernex/post-scheduler" 
               target="_blank" 
@@ -282,6 +283,13 @@ Stay tuned for more updates! #AI #Automation #WebDev`;
             >
               Contact
             </a>
+            <Link 
+              href="/blog" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-base font-medium text-slate-400 hover:text-white py-1"
+            >
+              Blog
+            </Link>
             <div className="pt-2 flex flex-col gap-3">
               {hasToken ? (
                 <Link href="/dashboard">
@@ -318,9 +326,9 @@ Stay tuned for more updates! #AI #Automation #WebDev`;
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-tight sm:leading-none">
-            Set Your Social Posting on{" "}
+            Automate Your Queue with the Ultimate{" "}
             <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              Autopilot
+              AI Post Scheduler
             </span>
           </h1>
 
