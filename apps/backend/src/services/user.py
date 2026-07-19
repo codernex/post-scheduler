@@ -49,35 +49,124 @@ class UserService:
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #0b0f19; color: #f8fafc; margin: 0; padding: 20px; }}
-    .container {{ max-width: 600px; margin: 0 auto; background: rgba(30, 41, 59, 0.7); border: 1px solid #1e293b; border-radius: 16px; padding: 32px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }}
-    .logo-container {{ text-align: center; margin-bottom: 24px; }}
-    .logo {{ font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
-    h1 {{ font-size: 20px; font-weight: 700; color: #f1f5f9; text-align: center; margin-bottom: 24px; }}
-    p {{ font-size: 16px; line-height: 1.6; color: #cbd5e1; margin-bottom: 20px; }}
-    .btn-container {{ text-align: center; margin: 30px 0; }}
-    .btn {{ display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); }}
-    .footer {{ font-size: 12px; color: #64748b; text-align: center; margin-top: 30px; border-top: 1px solid #1e293b; padding-top: 20px; }}
-    .expiry {{ color: #f59e0b; font-weight: 600; text-align: center; margin-top: 10px; font-size: 14px; }}
+    body {{
+      background-color: #f4f5f7;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }}
+    .wrapper {{
+      width: 100%;
+      background-color: #f4f5f7;
+      padding: 40px 0;
+    }}
+    .container {{
+      max-width: 540px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      border: 1px solid #e5e7eb;
+    }}
+    .header {{
+      padding: 32px 32px 20px 32px;
+      text-align: center;
+    }}
+    .logo {{
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #4f46e5;
+      text-decoration: none;
+    }}
+    .content {{
+      padding: 0 32px 32px 32px;
+    }}
+    h1 {{
+      color: #111827;
+      font-size: 22px;
+      font-weight: 700;
+      margin-top: 0;
+      margin-bottom: 16px;
+      text-align: center;
+      letter-spacing: -0.3px;
+    }}
+    p {{
+      color: #4b5563;
+      font-size: 15px;
+      line-height: 24px;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }}
+    .button-container {{
+      text-align: center;
+      margin: 28px 0;
+    }}
+    .button {{
+      display: inline-block;
+      background-color: #4f46e5;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 12px 30px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+    }}
+    .warning-box {{
+      background-color: #fffbeb;
+      border: 1px solid #fef3c7;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+    }}
+    .warning-text {{
+      color: #b45309;
+      font-size: 13px;
+      line-height: 18px;
+      margin: 0;
+      text-align: center;
+      font-weight: 500;
+    }}
+    .footer {{
+      background-color: #fafafb;
+      padding: 24px 32px;
+      text-align: center;
+      border-top: 1px solid #f3f4f6;
+    }}
+    .footer-text {{
+      color: #9ca3af;
+      font-size: 12px;
+      line-height: 18px;
+      margin: 0;
+    }}
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="logo-container">
-      <span class="logo">PostScheduler</span>
-    </div>
-    <h1>Verify your email address</h1>
-    <p>Hi <strong>{payload.username}</strong>,</p>
-    <p>Thank you for signing up for PostScheduler! Please verify your email address to activate your account and start scheduling your social media posts.</p>
-    <div class="btn-container">
-      <a href="{verification_link}" class="btn" target="_blank">Verify Email Address</a>
-    </div>
-    <p class="expiry">⚠️ This verification link will expire in 5 minutes.</p>
-    <p>If you did not create an account, you can safely ignore this email.</p>
-    <div class="footer">
-      &copy; 2026 PostScheduler. All rights reserved.<br>
-      Automate your social posting queue with AI.
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <span class="logo">PostScheduler</span>
+      </div>
+      <div class="content">
+        <h1>Verify your email address</h1>
+        <p>Hi <strong>{payload.username}</strong>,</p>
+        <p>Thank you for signing up for PostScheduler! Please verify your email address to activate your account and start scheduling your social media posts.</p>
+        <div class="button-container">
+          <a href="{verification_link}" class="button" target="_blank">Verify Email Address</a>
+        </div>
+        <div class="warning-box">
+          <p class="warning-text">⚠️ This link will expire in 5 minutes. If you did not create this account, you can safely ignore this email.</p>
+        </div>
+      </div>
+      <div class="footer">
+        <p class="footer-text">&copy; 2026 PostScheduler. All rights reserved.</p>
+        <p class="footer-text" style="margin-top: 4px;">Automate your social posting queue with AI.</p>
+      </div>
     </div>
   </div>
 </body>
