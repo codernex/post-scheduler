@@ -4,7 +4,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: "/",
+      allow: ["/", "/llms.txt"],
       disallow: ["/dashboard/", "/api/"],
     },
     sitemap: "https://post-scheduler.codernex.dev/sitemap.xml",

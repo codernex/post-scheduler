@@ -39,7 +39,10 @@ export default function Page() {
     "offers": {
       "@type": "Offer",
       "price": "0",
-      "priceCurrency": "USD"
+      "priceCurrency": "USD",
+      "availability": "https://schema.org/InStock",
+      "url": "https://post-scheduler.codernex.dev",
+      "priceValidUntil": "2027-12-31"
     }
   };
 

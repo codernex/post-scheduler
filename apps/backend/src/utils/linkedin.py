@@ -78,15 +78,19 @@ class LinkedInClient(SocialClient):
         """
         Publishes a text post to the user's LinkedIn profile feed.
         """
+        import re
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
             "X-Restli-Protocol-Version": "2.0.0",
             "LinkedIn-Version": LINKEDIN_VERSION,
         }
+        # Escape special characters for LinkedIn's parser: \ ( ) [ ] { } < > @ | ~ _ *
+        escaped_commentary = re.sub(r"([\\()\[\]{}<>@|~_*])", r"\\\1", commentary)
+
         payload: dict[str, str | dict[str, str | None] | None] = {
             "author": self.get_person_urn(author_urn),
-            "commentary": commentary,
+            "commentary": escaped_commentary,
             "visibility": "PUBLIC",
             "distribution": {"feedDistribution": "MAIN_FEED"},
             "lifecycleState": "PUBLISHED",

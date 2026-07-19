@@ -1,0 +1,20 @@
+# PostScheduler
+
+> PostScheduler is an AI-powered social media autopilot that automatically drafts and schedules unique, non-repetitive posts to LinkedIn and Facebook. It is built using LangChain, Google Gemini, and Supermemory (vector database context) to eliminate repetition.
+
+## Features
+- **Smart AI Queuing**: Formulate general theme prompts (e.g., "React development tips") and the AI will auto-create distinct, relevant posts for each scheduled slot.
+- **Supermemory Context Integration**: Recalls past generated posts using vector embeddings, ensuring the AI does not repeat similar subtopics or copy previous phrasing.
+- **Multi-Platform Posting**: Direct integration with LinkedIn and Facebook (Pages) APIs.
+- **Flexible Recurrence**: Post every X hours, days, or minutes up to a custom run count.
+- **Logs & Audit Trails**: Real-time status tracking (Scheduled, Published, Failed) with detailed execution log reports.
+
+## Pricing Plans
+- **Free Plan**: Free forever. Up to 3 active schedule configurations, 1 connected platform, and max 10 runs per schedule.
+- **Pro Plan ($15/month)**: Unlimited schedules, all platforms, unlimited runs, and priority generation queue.
+
+## Pages
+- [Homepage](https://post-scheduler.codernex.dev/): Landing page with features overview, live simulator, and CTA.
+- [Login Page](https://post-scheduler.codernex.dev/auth/login): Access page for user dashboard.
+- [Privacy Policy](https://post-scheduler.codernex.dev/privacy): Data usage, cookies, and OAuth policy details.
+- [Terms of Service](https://post-scheduler.codernex.dev/terms): Services usage agreement and platform rules.

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { getTokenCookie } from "@/lib/auth-client";
 import ContactForm from "./contact-form";
+import { toast } from "sonner";
 
 // Custom SVG Brand Icons
 const LinkedinIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -120,6 +121,10 @@ export default function LandingPageClient() {
 
   const runSimulation = () => {
     if (isSimulating) return;
+    if (simulatorPrompt.length > 1000) {
+      toast.error("Prompt must be at most 1000 characters.");
+      return;
+    }
     
     setIsSimulating(true);
     setSimulatorLogs([]);
@@ -433,10 +438,16 @@ Stay tuned for more updates! #AI #Automation #WebDev`;
 
               {/* Prompt field */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">AI Generation Prompt</label>
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">AI Generation Prompt</label>
+                  <span className={`text-[10px] ${simulatorPrompt.length >= 1000 ? "text-rose-500 font-semibold" : "text-slate-500"}`}>
+                    {simulatorPrompt.length} / 1000
+                  </span>
+                </div>
                 <textarea
                   value={simulatorPrompt}
                   onChange={(e) => setSimulatorPrompt(e.target.value)}
+                  maxLength={1000}
                   placeholder="Tell the agent what to write about..."
                   className="w-full h-24 p-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 text-sm focus:border-indigo-500 focus:outline-none resize-none transition-all placeholder:text-slate-600"
                 />

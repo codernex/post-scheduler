@@ -118,6 +118,10 @@ export function CreateScheduleDialog({
       toast.error("Max runs must be at least 1.");
       return;
     }
+    if (prompt.length > 1000) {
+      toast.error("Prompt must be at most 1000 characters.");
+      return;
+    }
 
     // Limit enforcement on submit
     if (!hasUnlimitedAccess && maxRuns > 10) {
@@ -239,13 +243,19 @@ export function CreateScheduleDialog({
 
             {/* Prompt */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400">
-                Prompt (optional)
-              </label>
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-semibold text-slate-400">
+                  Prompt (optional)
+                </label>
+                <span className={`text-[10px] ${prompt.length >= 1000 ? "text-rose-500 font-semibold" : "text-slate-500"}`}>
+                  {prompt.length} / 1000
+                </span>
+              </div>
               <textarea
                 placeholder="What would you like this post to be about? LLM will use this to write the post..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
+                maxLength={1000}
                 className="w-full min-h-[80px] rounded-md border border-slate-800 bg-slate-950/50 p-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-600 outline-none resize-none"
               />
             </div>

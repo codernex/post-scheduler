@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class CreateSchedulePayload(BaseModel):
@@ -47,6 +47,13 @@ class ScheduleResponse(BaseModel):
     # 3. This config tells Pydantic to read data directly from the SQLAlchemy model
     model_config = ConfigDict(from_attributes=True)
 
+    @field_validator("scheduled_at", "created_at", "updated_at", mode="after")
+    @classmethod
+    def ensure_utc(cls, v: datetime) -> datetime:
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
+
 
 class SchedulerLogResponse(BaseModel):
     id: int
@@ -57,4 +64,11 @@ class SchedulerLogResponse(BaseModel):
     detail: str | None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("created_at", mode="after")
+    @classmethod
+    def ensure_utc(cls, v: datetime) -> datetime:
+        if v.tzinfo is None:
+            return v.replace(tzinfo=timezone.utc)
+        return v
 
