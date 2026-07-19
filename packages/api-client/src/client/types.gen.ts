@@ -146,6 +146,10 @@ export type CreateUserResponse = {
      * Tier
      */
     tier: string;
+    /**
+     * Is Verified
+     */
+    is_verified: boolean;
 };
 
 /**
@@ -376,6 +380,34 @@ export type LoginApiV1AuthLoginPostResponses = {
 };
 
 export type LoginApiV1AuthLoginPostResponse = LoginApiV1AuthLoginPostResponses[keyof LoginApiV1AuthLoginPostResponses];
+
+export type VerifyEmailApiV1AuthVerifyEmailGetData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Token
+         */
+        token: string;
+    };
+    url: '/api/v1/auth/verify-email';
+};
+
+export type VerifyEmailApiV1AuthVerifyEmailGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type VerifyEmailApiV1AuthVerifyEmailGetError = VerifyEmailApiV1AuthVerifyEmailGetErrors[keyof VerifyEmailApiV1AuthVerifyEmailGetErrors];
+
+export type VerifyEmailApiV1AuthVerifyEmailGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type MeApiV1AuthMeGetData = {
     body?: never;

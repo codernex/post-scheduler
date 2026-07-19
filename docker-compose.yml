@@ -13,6 +13,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: always
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: always
+
   backend:
     build:
       context: ./apps/backend
@@ -21,6 +27,7 @@ services:
       - "8082:8081"
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:123456@postgres:5432/scheduler
+      - REDIS_URL=redis://redis:6379/0
       - JWT_SECRET=${JWT_SECRET}
       - LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID}
       - LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET}
@@ -36,6 +43,7 @@ services:
       - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       - postgres
+      - redis
     restart: always
 
   web:

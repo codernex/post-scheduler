@@ -15,6 +15,7 @@ _env_files = [
 
 class Settings(BaseSettings):
     DATABASE_URL: str
+    REDIS_URL: str = "redis://127.0.0.1:6379/0"
     LINKEDIN_CLIENT_ID: str
     LINKEDIN_CLIENT_SECRET: str
     LINKEDIN_REDIRECT_URI: str

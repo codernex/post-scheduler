@@ -51,6 +51,35 @@ async def login(payload: LoginPayload, db: AsyncSession = Depends(get_db)):
     return user
 
 
+@auth_router.get("/verify-email", status_code=200)
+async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
+    from core.redis_client import redis_client
+    redis_key = f"verification_token:{token}"
+    email = await redis_client.get(redis_key)
+    
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token."
+        )
+        
+    user_service = UserService(db)
+    user = await user_service.find_user_by_email(email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+        
+    user.is_verified = True
+    await db.commit()
+    
+    # Delete token from redis
+    await redis_client.delete(redis_key)
+    
+    return {"message": "Email verified successfully. You can now log in."}
+
+
 @auth_router.get("/me", response_model=CreateUserResponse, status_code=200)
 async def me(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     user_service = UserService(db)

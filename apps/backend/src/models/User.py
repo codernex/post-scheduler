@@ -23,5 +23,6 @@ class User(Base):
     timezone: Mapped[str] = mapped_column(String, default="UTC", nullable=True)
     role: Mapped[str] = mapped_column(String(50), default="user", server_default="user", nullable=False)
     tier: Mapped[str] = mapped_column(String(50), default="free", server_default="free", nullable=False)
+    is_verified: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
 
 

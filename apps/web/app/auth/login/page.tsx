@@ -72,26 +72,11 @@ export default function AuthPage() {
             icon: <ShieldAlert className="w-5 h-5 text-rose-500" />,
           });
         } else if (response.data) {
-          toast.success("Account created successfully! Logging you in...", {
+          toast.success("Account created! A verification link has been sent to your email. Please check your inbox (and spam folder) to activate your account.", {
             icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
+            duration: 10000,
           });
-          
-          // Log in automatically after signup
-          const loginResponse = await loginApiV1AuthLoginPost({
-            body: {
-              email: formData.email,
-              password: formData.password,
-            },
-          });
-
-          if (loginResponse.data) {
-            const { access_token } = loginResponse.data;
-            setTokenCookie(access_token);
-            router.push("/dashboard");
-            router.refresh();
-          } else {
-            setMode("login");
-          }
+          setMode("login");
         }
       }
     } catch (err: unknown) {

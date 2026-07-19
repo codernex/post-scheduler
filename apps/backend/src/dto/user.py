@@ -16,6 +16,7 @@ class CreateUserResponse(BaseModel):
     created_at: datetime.datetime
     role: str
     tier: str
+    is_verified: bool
 
 
 

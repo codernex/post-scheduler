@@ -25,4 +25,5 @@ dependencies = [
     "sqlalchemy>=2.0.51",
     "supermemory>=3.50.0",
     "uvicorn>=0.49.0",
+    "redis>=5.2.1",
 ]
