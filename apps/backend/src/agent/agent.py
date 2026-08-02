@@ -10,7 +10,7 @@ Memory is keyed per scheduler_id so schedules are fully isolated.
 
 import asyncio
 import logging
-from typing import Optional
+from typing import Optional,Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
@@ -25,11 +25,11 @@ logger = logging.getLogger(__name__)
 # singleton is shared across all PostingAgent instances within the same process.
 # ---------------------------------------------------------------------------
 _llm = ChatOpenAI(
-    openai_api_base="https://openrouter.ai/api/v1",
-    openai_api_key=settings.OPENROUTER_API_KEY,
+    openai_api_base="https://openrouter.ai/api/v1",  # type: ignore
+    openai_api_key=settings.OPENROUTER_API_KEY,  # type: ignore
     model=settings.OPENROUTER_MODEL,
-    temperature=0.85,       # a bit of creativity
-    max_tokens=1024,
+    temperature=0.85,  # a bit of creativity
+    max_tokens=1024,  # type: ignore
 )
 
 # ---------------------------------------------------------------------------
@@ -110,7 +110,7 @@ class PostingAgent:
             if not results or not results.results:
                 return ""
 
-            entries = []
+            entries: list[str] = []
             for i, r in enumerate(results.results, start=1):
                 content = getattr(r, "memory", None) or getattr(r, "chunk", None) or ""
                 if content:
@@ -141,13 +141,10 @@ class PostingAgent:
                 + previous_posts
             )
         else:
-            parts.append(
-                "This is the FIRST post in the series — start strong!"
-            )
+            parts.append("This is the FIRST post in the series — start strong!")
 
         parts.append(
-            f"\nNow write the next {self.platform} post. "
-            "Output ONLY the post text."
+            f"\nNow write the next {self.platform} post. " "Output ONLY the post text."
         )
 
         return "\n\n".join(parts)
@@ -174,7 +171,7 @@ class PostingAgent:
         previous_posts = await self._recall_previous_posts()
 
         print(f"[PostingAgent] Previous posts: {previous_posts}")
-        messages = [
+        messages :list[Any] = [
             SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=self._build_human_message(previous_posts)),
         ]
@@ -198,7 +195,9 @@ class PostingAgent:
             except TimeoutError:
                 logger.error(
                     "[PostingAgent] OpenRouter call timed out (attempt %d/%d) — scheduler_id=%d",
-                    attempt, max_retries, self.scheduler_id,
+                    attempt,
+                    max_retries,
+                    self.scheduler_id,
                 )
                 if attempt == max_retries:
                     raise
@@ -208,11 +207,14 @@ class PostingAgent:
                 is_rate_limit = "429" in exc_str or "RESOURCE_EXHAUSTED" in exc_str
 
                 if is_rate_limit and attempt < max_retries:
-                    wait = 2 ** attempt  # 2s, 4s
+                    wait = 2**attempt  # 2s, 4s
                     logger.warning(
                         "[PostingAgent] OpenRouter rate-limited (attempt %d/%d), "
                         "retrying in %ds — scheduler_id=%d",
-                        attempt, max_retries, wait, self.scheduler_id,
+                        attempt,
+                        max_retries,
+                        wait,
+                        self.scheduler_id,
                     )
                     await asyncio.sleep(wait)
                 else:
