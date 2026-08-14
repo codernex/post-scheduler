@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.dependencies import get_current_user
 from services.scheduler import SchedulerService
 from core import get_db
-from dto import CreateSchedulePayload, ScheduleResponse, SchedulerLogResponse
+from dto import CreateSchedulePayload, UpdateSchedulePayload, ScheduleResponse, SchedulerLogResponse
 from models import User
 
 scheduler_router = APIRouter(
@@ -49,4 +49,18 @@ async def get_schedule_logs(schedule_id: int, db: AsyncSession = Depends(get_db)
     scheduler_service = SchedulerService(db)
     logs = await scheduler_service.get_schedule_logs(schedule_id, user_id=current_user.id)
     return logs
+
+
+@scheduler_router.put("/{schedule_id}", tags=["Scheduler"], response_model=ScheduleResponse)
+@scheduler_router.patch("/{schedule_id}", tags=["Scheduler"], response_model=ScheduleResponse)
+async def update_schedule(schedule_id: int, payload: UpdateSchedulePayload, db: AsyncSession = Depends(get_db),
+                          current_user: User = Depends(get_current_user)):
+    scheduler_service = SchedulerService(db)
+    schedule = await scheduler_service.update_schedule(
+        schedule_id=schedule_id,
+        payload=payload,
+        user_id=current_user.id
+    )
+    return schedule
+
 

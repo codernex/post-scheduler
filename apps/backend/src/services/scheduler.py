@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
 from models import User, Scheduler, SchedulerLog
-from dto import CreateSchedulePayload
+from dto import CreateSchedulePayload, UpdateSchedulePayload
 
 
 class SchedulerStatus(enum.Enum):
@@ -133,4 +133,103 @@ class SchedulerService:
         stmt_logs = select(SchedulerLog).where(SchedulerLog.scheduler_id == schedule_id).order_by(SchedulerLog.created_at.desc())
         result_logs = await self._db.execute(stmt_logs)
         return list(result_logs.scalars().all())
+
+    async def update_schedule(self, schedule_id: int, payload: UpdateSchedulePayload, user_id: int) -> Scheduler:
+        stmt = select(Scheduler).where(Scheduler.id == schedule_id, Scheduler.user_id == user_id)
+        result = await self._db.execute(stmt)
+        schedule = result.scalar_one_or_none()
+
+        if not schedule:
+            raise HTTPException(status_code=404, detail="Schedule not found or unauthorized to edit")
+
+        if payload.social_media_id is not None and payload.social_media_id != schedule.social_media_id:
+            from models import SocialMedia
+            sm_result = await self._db.execute(select(SocialMedia).where(SocialMedia.id == payload.social_media_id))
+            social_media = sm_result.scalar_one_or_none()
+            if not social_media:
+                raise HTTPException(status_code=404, detail="Social media platform connection not found")
+            
+            is_facebook = False
+            if social_media.name.lower() == "facebook":
+                is_facebook = True
+            elif social_media.parent_id:
+                parent_result = await self._db.execute(select(SocialMedia).where(SocialMedia.id == social_media.parent_id))
+                parent_platform = parent_result.scalar_one_or_none()
+                if parent_platform and parent_platform.name.lower() == "facebook":
+                    is_facebook = True
+                    
+            if is_facebook:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Facebook scheduling is temporarily disabled for testing."
+                )
+            schedule.social_media_id = payload.social_media_id
+
+        if payload.recurrence is not None:
+            schedule.recurrence = payload.recurrence
+
+        if payload.recurrence_unit is not None:
+            schedule.recurrence_unit = payload.recurrence_unit
+
+        if payload.max_runs is not None:
+            schedule.max_runs = payload.max_runs
+
+        if payload.prompt is not None:
+            schedule.prompt = payload.prompt
+
+        changes_desc = []
+        if payload.prompt is not None:
+            changes_desc.append("Prompt updated")
+        if payload.recurrence is not None or payload.recurrence_unit is not None:
+            changes_desc.append(f"Recurrence set to {schedule.recurrence} {schedule.recurrence_unit}(s)")
+        if payload.max_runs is not None:
+            changes_desc.append(f"Max runs set to {schedule.max_runs}")
+
+        if payload.scheduled_at is not None:
+            incoming_dt = payload.scheduled_at
+            if incoming_dt.tzinfo is None:
+                user = await self._db.get(User, user_id)
+                user_tz_string = user.timezone if (user and user.timezone) else "UTC"
+                try:
+                    tz = zoneinfo.ZoneInfo(user_tz_string)
+                except zoneinfo.ZoneInfoNotFoundError:
+                    tz = zoneinfo.ZoneInfo("UTC")
+                    user_tz_string = "UTC"
+                incoming_dt = incoming_dt.replace(tzinfo=tz)
+            else:
+                user_tz_string = str(incoming_dt.tzinfo)
+                if not user_tz_string or user_tz_string.startswith("UTC"):
+                    offset = incoming_dt.utcoffset()
+                    total_seconds = int(offset.total_seconds()) if offset else 0
+                    sign = "+" if total_seconds >= 0 else "-"
+                    hours, remainder = divmod(abs(total_seconds), 3600)
+                    minutes = remainder // 60
+                    user_tz_string = f"UTC{sign}{hours:02d}:{minutes:02d}"
+
+            utc_time = incoming_dt.astimezone(timezone.utc)
+            schedule.scheduled_at = utc_time
+            schedule.user_timezone = user_tz_string
+            schedule.status = SchedulerStatus.PENDING.value
+            changes_desc.append(f"Rescheduled to {incoming_dt.isoformat()}")
+
+        if payload.reset_runs_completed or (payload.scheduled_at is not None and schedule.runs_completed >= schedule.max_runs):
+            schedule.runs_completed = 0
+            schedule.status = SchedulerStatus.PENDING.value
+            changes_desc.append("Runs completed count reset to 0")
+
+        schedule.updated_at = datetime.now()
+
+        update_log = SchedulerLog(
+            scheduler_id=schedule.id,
+            post_content=f"Schedule updated/rescheduled: {', '.join(changes_desc) if changes_desc else 'Configuration updated'}",
+            status="INFO",
+            detail=f"Parameters updated by user. Current status: {schedule.status}."
+        )
+        self._db.add(update_log)
+
+        await self._db.commit()
+        await self._db.refresh(schedule)
+
+        return schedule
+
 

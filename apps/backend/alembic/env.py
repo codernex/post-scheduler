@@ -2,16 +2,17 @@ import asyncio
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
-from  core import Base  # adjust import
+from  core import Base,settings  # adjust import
 from  models import *
 
 import os
 config = context.config
 
 # Overwrite database URL with the DATABASE_URL environment variable if set
-if database_url := os.getenv("DATABASE_URL"):
+if database_url := settings.DATABASE_URL:
     config.set_main_option("sqlalchemy.url", database_url)
 
+print(database_url)
 target_metadata = Base.metadata
 
 

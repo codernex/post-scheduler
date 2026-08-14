@@ -18,6 +18,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from supermemory import Supermemory
+from langchain_nvidia_ai_endpoints import ChatNVIDIA
 
 from core import settings
 
@@ -26,13 +27,21 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # OpenRouter model (OpenAI-compatible) — process-level singleton
 # ---------------------------------------------------------------------------
-_llm = ChatOpenAI(
-    openai_api_base="https://openrouter.ai/api/v1",  # type: ignore
-    openai_api_key=settings.OPENROUTER_API_KEY,  # type: ignore
+_llm = ChatNVIDIA(
+    api_key=settings.OPENROUTER_API_KEY,  # type: ignore
     model=settings.OPENROUTER_MODEL,
     temperature=0.85,
-    max_tokens=350,  # type: ignore
+    max_tokens=8192,  # type: ignore
 )
+
+_image_llm = ChatNVIDIA(
+    api_key=settings.OPENROUTER_API_KEY,  # type: ignore
+    model="nvidia/riva-translate-4b-instruct-v2",
+    temperature=0.7,
+    max_tokens=2048,  # type: ignore
+)
+
+
 
 # ---------------------------------------------------------------------------
 # Supermemory client — process-level singleton
@@ -247,7 +256,16 @@ async def generate_image_node(state: PostingState) -> dict[str, Any]:
         ]
 
         async with asyncio.timeout(15):
-            response = await _llm.ainvoke(messages)
+            try:
+                response = await _image_llm.ainvoke(messages)
+            except Exception as img_err:
+                logger.warning(
+                    "[LangGraph Node: generate_image] _image_llm failed (%s), falling back to _llm — scheduler_id=%d",
+                    img_err,
+                    scheduler_id,
+                )
+                response = await _llm.ainvoke(messages)
+
 
         image_prompt = str(response.content).strip()
         logger.info(

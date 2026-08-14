@@ -16,6 +16,17 @@ class CreateSchedulePayload(BaseModel):
     prompt: str | None = None
 
 
+class UpdateSchedulePayload(BaseModel):
+    social_media_id: int | None = None
+    recurrence: int | None = None
+    recurrence_unit: str | None = None
+    max_runs: int | None = None
+    scheduled_at: datetime | None = None
+    prompt: str | None = None
+    reset_runs_completed: bool = False
+
+
+
 # 1. Define an Enum for your status so your frontend gets strict typing
 class ScheduleStatus(str, Enum):
     SCHEDULED = "SCHEDULED"
