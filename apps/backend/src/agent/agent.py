@@ -1,8 +1,8 @@
 """
 PostingAgent
 ============
-Uses LangChain + OpenRouter to generate social-media posts and
-Supermemory to track what has already been posted per scheduler,
+Uses LangChain + LangGraph + OpenRouter to generate social-media posts
+and matching post images, backed by Supermemory to track what has already been posted per scheduler,
 so each run covers fresh content.
 
 Memory is keyed per scheduler_id so schedules are fully isolated.
@@ -10,10 +10,13 @@ Memory is keyed per scheduler_id so schedules are fully isolated.
 
 import asyncio
 import logging
-from typing import Optional,Any
+import random
+import urllib.parse
+from typing import Any, Optional, TypedDict
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+from langgraph.graph import END, START, StateGraph
 from supermemory import Supermemory
 
 from core import settings
@@ -21,19 +24,18 @@ from core import settings
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# OpenRouter model (OpenAI-compatible) — initialised once at module level so the
-# singleton is shared across all PostingAgent instances within the same process.
+# OpenRouter model (OpenAI-compatible) — process-level singleton
 # ---------------------------------------------------------------------------
 _llm = ChatOpenAI(
     openai_api_base="https://openrouter.ai/api/v1",  # type: ignore
     openai_api_key=settings.OPENROUTER_API_KEY,  # type: ignore
     model=settings.OPENROUTER_MODEL,
-    temperature=0.85,  # a bit of creativity
-    max_tokens=1024,  # type: ignore
+    temperature=0.85,
+    max_tokens=350,  # type: ignore
 )
 
 # ---------------------------------------------------------------------------
-# Supermemory client — also a process-level singleton
+# Supermemory client — process-level singleton
 # ---------------------------------------------------------------------------
 _memory = Supermemory(api_key=settings.SUPERMEMORY_API_KEY)
 
@@ -60,23 +62,258 @@ not already addressed in the previous posts. Do NOT repeat ideas.
 Output ONLY the post text — no preamble, no explanation.
 """
 
+IMAGE_PROMPT_SYSTEM_PROMPT = """\
+You are an expert visual artist and graphic designer for social media content.
+Your task is to take a social media post and generate a detailed, highly descriptive
+image generation prompt (in English, max 60 words) that describes an eye-catching visual image
+matching the post topic.
+
+Style guidelines:
+- Modern visual style (sleek digital illustration, 3D render, minimalist vector artwork, or clean tech graphic)
+- Clear central subject representing the post's core message or tech concept
+- Vivid lighting and aesthetic composition suitable for LinkedIn / Instagram / Facebook
+- Do NOT include text, letters, or words in the image description
+- Output ONLY the raw image generation prompt — no preamble, quotes, or markdown.
+"""
+
+
+class PostingState(TypedDict):
+    scheduler_id: int
+    prompt: str
+    platform: str
+    previous_posts: str
+    post_text: str
+    image_prompt: str
+    image_url: Optional[str]
+    error: Optional[str]
+
+
+class PostResult(dict):
+    """
+    Result container returned by PostingAgent.
+    Behaves as a dict (`{"post_text": ..., "image_url": ..., "image_prompt": ...}`)
+    and also seamlessly stringifies to `post_text` for backward compatibility.
+    """
+
+    def __str__(self) -> str:
+        return self.get("post_text", "")
+
+    def __repr__(self) -> str:
+        return self.get("post_text", "")
+
+    @property
+    def post_text(self) -> str:
+        return self.get("post_text", "")
+
+    @property
+    def image_url(self) -> Optional[str]:
+        return self.get("image_url")
+
+    @property
+    def image_prompt(self) -> Optional[str]:
+        return self.get("image_prompt")
+
+
+# ---------------------------------------------------------------------------
+# LangGraph Node Functions
+# ---------------------------------------------------------------------------
+
+async def recall_memory_node(state: PostingState) -> dict[str, Any]:
+    """Node 1: Query Supermemory for past posts to avoid repetition."""
+    scheduler_id = state["scheduler_id"]
+    prompt = state["prompt"]
+    memory_tag = f"scheduler_{scheduler_id}"
+
+    try:
+        results = _memory.search.execute(
+            q=prompt,
+            container_tags=[memory_tag],
+            limit=10,
+        )
+
+        if not results or not results.results:
+            return {"previous_posts": ""}
+
+        entries: list[str] = []
+        for i, r in enumerate(results.results, start=1):
+            content = getattr(r, "memory", None) or getattr(r, "chunk", None) or ""
+            if content:
+                entries.append(f"Post #{i}:\n{content}")
+
+        recalled = "\n\n---\n\n".join(entries)
+        logger.info(
+            "[LangGraph Node: recall_memory] Recalled %d entries for scheduler %d",
+            len(entries),
+            scheduler_id,
+        )
+        return {"previous_posts": recalled}
+
+    except Exception as exc:
+        logger.warning(
+            "[LangGraph Node: recall_memory] Supermemory recall failed (scheduler_id=%d): %s",
+            scheduler_id,
+            exc,
+        )
+        return {"previous_posts": ""}
+
+
+async def generate_post_node(state: PostingState) -> dict[str, Any]:
+    """Node 2: Use LangChain + LLM to generate fresh social media post."""
+    platform = state["platform"]
+    prompt = state["prompt"]
+    previous_posts = state["previous_posts"]
+    scheduler_id = state["scheduler_id"]
+
+    parts = [
+        f"Platform: {platform}",
+        f"Post series prompt: {prompt}",
+    ]
+
+    if previous_posts:
+        parts.append(
+            "Previously published posts in this series (DO NOT repeat these angles):\n\n"
+            + previous_posts
+        )
+    else:
+        parts.append("This is the FIRST post in the series — start strong!")
+
+    parts.append(
+        f"\nNow write the next {platform} post. Output ONLY the post text."
+    )
+
+    user_message_content = "\n\n".join(parts)
+    messages = [
+        SystemMessage(content=SYSTEM_PROMPT),
+        HumanMessage(content=user_message_content),
+    ]
+
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            async with asyncio.timeout(20):
+                response = await _llm.ainvoke(messages)
+            post_text = str(response.content).strip()
+            logger.info(
+                "[LangGraph Node: generate_post] Post generated (%d chars) — scheduler_id=%d",
+                len(post_text),
+                scheduler_id,
+            )
+            return {"post_text": post_text}
+
+        except TimeoutError:
+            logger.error(
+                "[LangGraph Node: generate_post] OpenRouter call timed out (attempt %d/%d) — scheduler_id=%d",
+                attempt,
+                max_retries,
+                scheduler_id,
+            )
+            if attempt == max_retries:
+                raise
+
+        except Exception as exc:
+            exc_str = str(exc)
+            is_rate_limit = "429" in exc_str or "RESOURCE_EXHAUSTED" in exc_str
+
+            if is_rate_limit and attempt < max_retries:
+                wait = 2**attempt
+                logger.warning(
+                    "[LangGraph Node: generate_post] OpenRouter rate-limited (attempt %d/%d), retrying in %ds — scheduler_id=%d",
+                    attempt,
+                    max_retries,
+                    wait,
+                    scheduler_id,
+                )
+                await asyncio.sleep(wait)
+            else:
+                raise
+
+    raise RuntimeError("generate_post_node: exhausted retries")
+
+
+async def generate_image_node(state: PostingState) -> dict[str, Any]:
+    """Node 3: Craft visual prompt and generate image matching post content."""
+    post_text = state.get("post_text", "")
+    scheduler_id = state.get("scheduler_id", 0)
+
+    if not post_text:
+        return {"image_prompt": "", "image_url": None}
+
+    try:
+        messages = [
+            SystemMessage(content=IMAGE_PROMPT_SYSTEM_PROMPT),
+            HumanMessage(
+                content=f"Create an image generation prompt for this post:\n\n{post_text[:800]}"
+            ),
+        ]
+
+        async with asyncio.timeout(15):
+            response = await _llm.ainvoke(messages)
+
+        image_prompt = str(response.content).strip()
+        logger.info(
+            "[LangGraph Node: generate_image] Image prompt generated: '%s'",
+            image_prompt,
+        )
+
+        encoded_prompt = urllib.parse.quote_plus(image_prompt)
+        seed = random.randint(1000, 999999)
+        image_url = (
+            f"https://image.pollinations.ai/prompt/{encoded_prompt}"
+            f"?width=1024&height=1024&nologo=true&seed={seed}"
+        )
+
+        logger.info(
+            "[LangGraph Node: generate_image] Generated image URL for scheduler_id=%d: %s",
+            scheduler_id,
+            image_url,
+        )
+        return {"image_prompt": image_prompt, "image_url": image_url}
+
+    except Exception as exc:
+        logger.warning(
+            "[LangGraph Node: generate_image] Image generation failed (non-fatal, scheduler_id=%d): %s",
+            scheduler_id,
+            exc,
+        )
+        return {"image_prompt": "", "image_url": None}
+
+
+# ---------------------------------------------------------------------------
+# Construct LangGraph Graph
+# ---------------------------------------------------------------------------
+
+def create_posting_graph() -> Any:
+    """Builds and compiles the LangGraph StateGraph pipeline."""
+    graph = StateGraph(PostingState)
+
+    graph.add_node("recall_memory", recall_memory_node)
+    graph.add_node("generate_post", generate_post_node)
+    graph.add_node("generate_image", generate_image_node)
+
+    graph.add_edge(START, "recall_memory")
+    graph.add_edge("recall_memory", "generate_post")
+    graph.add_edge("generate_post", "generate_image")
+    graph.add_edge("generate_image", END)
+
+    return graph.compile()
+
+
+# Process-level compiled graph instance
+_posting_graph = create_posting_graph()
+
 
 class PostingAgent:
     """
-    Generates a social-media post for a given scheduler run.
+    Generates social media post content & image using a LangGraph workflow.
 
     Parameters
     ----------
     scheduler_id : int
-        Primary key of the Scheduler row. Used as the Supermemory tag
-        to isolate memory per schedule.
+        Primary key of the Scheduler row. Used as Supermemory tag.
     prompt : str | None
-        The user's custom prompt, e.g.
-        "PostgreSQL: cover indexing, VACUUM, replication, partitioning, JSONB"
-        If None, falls back to a generic post request.
+        User prompt defining topic / theme.
     platform : str
-        Target platform name (e.g. "LinkedIn"). Used in the generation
-        prompt so the style matches the platform.
+        Target platform name (e.g. "LinkedIn", "Instagram", "Facebook").
     """
 
     def __init__(
@@ -90,161 +327,84 @@ class PostingAgent:
         self.platform = platform
         self._memory_tag = f"scheduler_{scheduler_id}"
 
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
-
-    async def _recall_previous_posts(self) -> str:
+    async def generate_post(self) -> PostResult:
         """
-        Query Supermemory for all past posts under this scheduler's tag.
-        Returns a formatted string to inject into the generation prompt,
-        or an empty string if this is the first run.
-        """
-        try:
-            results = _memory.search.execute(
-                q=self.prompt,
-                container_tags=[self._memory_tag],
-                limit=10,
-            )
+        Executes the LangGraph pipeline:
+        1. Recalls history from Supermemory.
+        2. Generates fresh post content via LangChain LLM.
+        3. Generates matching image prompt and image URL.
 
-            if not results or not results.results:
-                return ""
-
-            entries: list[str] = []
-            for i, r in enumerate(results.results, start=1):
-                content = getattr(r, "memory", None) or getattr(r, "chunk", None) or ""
-                if content:
-                    entries.append(f"Post #{i}:\n{content}")
-
-            return "\n\n---\n\n".join(entries)
-
-        except Exception as exc:
-            # Memory recall failure is non-fatal — the agent can still
-            # generate a post; it just won't have history context.
-            logger.warning(
-                "[PostingAgent] Supermemory recall failed (scheduler_id=%d): %s",
-                self.scheduler_id,
-                exc,
-            )
-            return ""
-
-    def _build_human_message(self, previous_posts: str) -> str:
-        """Compose the user-turn message for the LLM."""
-        parts = [
-            f"Platform: {self.platform}",
-            f"Post series prompt: {self.prompt}",
-        ]
-
-        if previous_posts:
-            parts.append(
-                "Previously published posts in this series (DO NOT repeat these angles):\n\n"
-                + previous_posts
-            )
-        else:
-            parts.append("This is the FIRST post in the series — start strong!")
-
-        parts.append(
-            f"\nNow write the next {self.platform} post. " "Output ONLY the post text."
-        )
-
-        return "\n\n".join(parts)
-
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
-    async def generate_post(self) -> str:
-        """
-        Main entry-point called by the scheduler worker.
-
-        1. Retrieves previously posted content from Supermemory.
-        2. Builds a LangChain prompt with that context.
-        3. Invokes OpenRouter to generate a fresh post (with retry + timeout).
-        4. Returns the generated post text.
+        Returns
+        -------
+        PostResult
+            A dict-like object containing post_text, image_url, image_prompt.
+            Can also be stringified directly to post_text.
         """
         logger.info(
-            "[PostingAgent] Generating post — scheduler_id=%d, platform=%s",
+            "[PostingAgent] Running LangGraph pipeline — scheduler_id=%d, platform=%s",
             self.scheduler_id,
             self.platform,
         )
 
-        previous_posts = await self._recall_previous_posts()
+        initial_state: PostingState = {
+            "scheduler_id": self.scheduler_id,
+            "prompt": self.prompt,
+            "platform": self.platform,
+            "previous_posts": "",
+            "post_text": "",
+            "image_prompt": "",
+            "image_url": None,
+            "error": None,
+        }
 
-        print(f"[PostingAgent] Previous posts: {previous_posts}")
-        messages :list[Any] = [
-            SystemMessage(content=SYSTEM_PROMPT),
-            HumanMessage(content=self._build_human_message(previous_posts)),
-        ]
+        final_state: dict[str, Any] = await _posting_graph.ainvoke(initial_state)
 
-        # Retry with exponential backoff for rate-limit (429) errors.
-        # Total timeout capped at 90s so we never block the worker loop.
-        max_retries = 3
-        for attempt in range(1, max_retries + 1):
-            try:
-                async with asyncio.timeout(15):
-                    response = await _llm.ainvoke(messages)
-                post_text: str = response.content.strip()
+        result = PostResult(
+            post_text=final_state.get("post_text", ""),
+            image_url=final_state.get("image_url"),
+            image_prompt=final_state.get("image_prompt", ""),
+        )
 
-                logger.info(
-                    "[PostingAgent] Post generated (%d chars) — scheduler_id=%d",
-                    len(post_text),
-                    self.scheduler_id,
-                )
-                return post_text
+        logger.info(
+            "[PostingAgent] LangGraph execution complete (post length=%d, image_url=%s) — scheduler_id=%d",
+            len(result.post_text),
+            result.image_url,
+            self.scheduler_id,
+        )
+        return result
 
-            except TimeoutError:
-                logger.error(
-                    "[PostingAgent] OpenRouter call timed out (attempt %d/%d) — scheduler_id=%d",
-                    attempt,
-                    max_retries,
-                    self.scheduler_id,
-                )
-                if attempt == max_retries:
-                    raise
-
-            except Exception as exc:
-                exc_str = str(exc)
-                is_rate_limit = "429" in exc_str or "RESOURCE_EXHAUSTED" in exc_str
-
-                if is_rate_limit and attempt < max_retries:
-                    wait = 2**attempt  # 2s, 4s
-                    logger.warning(
-                        "[PostingAgent] OpenRouter rate-limited (attempt %d/%d), "
-                        "retrying in %ds — scheduler_id=%d",
-                        attempt,
-                        max_retries,
-                        wait,
-                        self.scheduler_id,
-                    )
-                    await asyncio.sleep(wait)
-                else:
-                    raise
-
-        # Should never reach here, but satisfies the type checker
-        raise RuntimeError("generate_post: exhausted retries")
-
-    async def save_post_to_memory(self, post_content: str) -> None:
+    async def save_post_to_memory(
+        self, post_content: str | dict[str, Any], image_url: Optional[str] = None
+    ) -> None:
         """
         Persist the generated post to Supermemory so future runs can
         recall it and avoid repetition.
         """
+        if isinstance(post_content, dict):
+            content_str = str(post_content.get("post_text", ""))
+            image_url = image_url or post_content.get("image_url")
+        else:
+            content_str = str(post_content)
+
+        metadata: dict[str, Any] = {
+            "scheduler_id": self.scheduler_id,
+            "platform": self.platform,
+            "prompt": self.prompt,
+        }
+        if image_url:
+            metadata["image_url"] = image_url
+
         try:
             _memory.add(
-                content=post_content,
+                content=content_str,
                 container_tags=[self._memory_tag],
-                metadata={
-                    "scheduler_id": self.scheduler_id,
-                    "platform": self.platform,
-                    "prompt": self.prompt,
-                },
+                metadata=metadata,
             )
             logger.info(
                 "[PostingAgent] Post saved to Supermemory — tag=%s",
                 self._memory_tag,
             )
         except Exception as exc:
-            # Memory save failure is also non-fatal — the post was still
-            # published; we just won't have perfect recall next time.
             logger.warning(
                 "[PostingAgent] Supermemory save failed (scheduler_id=%d): %s",
                 self.scheduler_id,

@@ -197,9 +197,21 @@ async def _run_posting_logic(scheduler: Scheduler, db: AsyncSession):
         platform=platform_name,
     )
 
-    # --- Generate the post via Gemini (informed by Supermemory context) ---
-    post = await agent.generate_post()
-    logger.info("[worker] Post generated (%d chars) for scheduler %d", len(post), scheduler.id)
+    # --- Generate the post & image via LangGraph agent ---
+    post_result = await agent.generate_post()
+    if isinstance(post_result, dict):
+        post_text = str(post_result.get("post_text", ""))
+        image_url = post_result.get("image_url")
+    else:
+        post_text = str(post_result)
+        image_url = getattr(post_result, "image_url", None)
+
+    logger.info(
+        "[worker] Post generated (%d chars, image_url=%s) for scheduler %d",
+        len(post_text),
+        image_url,
+        scheduler.id,
+    )
 
     # --- Publish to the social platform ---
     if "linkedin" in platform_name.lower():
@@ -207,7 +219,9 @@ async def _run_posting_logic(scheduler: Scheduler, db: AsyncSession):
         logger.info("[worker] LinkedIn access token obtained for user %d", scheduler.user_id)
         author = await run_in_threadpool(linkedin_client.get_user_info, access_token)
         urn = linkedin_client.get_person_urn(author["sub"])
-        await run_in_threadpool(linkedin_client.publish_post, access_token, urn, post)
+        await run_in_threadpool(
+            linkedin_client.publish_post, access_token, urn, post_text, image_url
+        )
         logger.info("[worker] Post published to LinkedIn — scheduler %d", scheduler.id)
     elif "facebook" in platform_name.lower() or "instagram" in platform_name.lower() or "thread" in platform_name.lower():
         access_token = await get_platform_access_token(scheduler.user_id, scheduler.social_media_id, db)
@@ -221,15 +235,16 @@ async def _run_posting_logic(scheduler: Scheduler, db: AsyncSession):
             facebook_client.publish_post,
             access_token,
             urn,
-            post,
-            platform_name=platform_name
+            post_text,
+            platform_name=platform_name,
+            image_url=image_url,
         )
         logger.info("[worker] Post published to %s — scheduler %d", platform_name, scheduler.id)
 
     # --- Save to Supermemory AFTER a successful publish ---
-    await agent.save_post_to_memory(post)
+    await agent.save_post_to_memory(post_text, image_url=image_url)
 
-    return post
+    return post_text
 
 
 # ---------------------------------------------------------

@@ -73,10 +73,10 @@ class LinkedInClient(SocialClient):
         return f"urn:li:person:{sub}"
 
     def publish_post(
-        self, access_token: str, author_urn: str, commentary: str
+        self, access_token: str, author_urn: str, commentary: str, image_url: str | None = None
     ) -> dict[str, str]:
         """
-        Publishes a text post to the user's LinkedIn profile feed.
+        Publishes a text (or media) post to the user's LinkedIn profile feed.
         """
         import re
         headers = {
@@ -88,7 +88,7 @@ class LinkedInClient(SocialClient):
         # Escape special characters for LinkedIn's parser: \ ( ) [ ] { } < > @ | ~ _ *
         escaped_commentary = re.sub(r"([\\()\[\]{}<>@|~_*])", r"\\\1", commentary)
 
-        payload: dict[str, str | dict[str, str | None] | None] = {
+        payload: dict[str, Any] = {
             "author": self.get_person_urn(author_urn),
             "commentary": escaped_commentary,
             "visibility": "PUBLIC",

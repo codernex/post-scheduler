@@ -78,7 +78,7 @@ class FacebookClient(SocialClient):
         }
 
     def publish_post(
-        self, access_token: str, author_urn: str, commentary: str, platform_name: str | None = None
+        self, access_token: str, author_urn: str, commentary: str, platform_name: str | None = None, image_url: str | None = None
     ) -> dict[str, str]:
         """
         Publishes a post to Facebook Page, Instagram, or Threads depending on the target platform.
@@ -87,13 +87,13 @@ class FacebookClient(SocialClient):
         platform = (platform_name or "Facebook Post").lower()
 
         if "instagram" in platform:
-            return self._publish_instagram_post(access_token, commentary)
+            return self._publish_instagram_post(access_token, commentary, image_url=image_url)
         elif "thread" in platform:
             return self._publish_threads_post(access_token, commentary)
         else:
-            return self._publish_facebook_page_post(access_token, commentary)
+            return self._publish_facebook_page_post(access_token, commentary, image_url=image_url)
 
-    def _publish_facebook_page_post(self, access_token: str, commentary: str) -> dict[str, str]:
+    def _publish_facebook_page_post(self, access_token: str, commentary: str, image_url: str | None = None) -> dict[str, str]:
         """
         Publishes a post to the user's Facebook Page.
         Uses the Page Access Token.
@@ -113,17 +113,26 @@ class FacebookClient(SocialClient):
         page_id = page["id"]
         page_access_token = page["access_token"]
 
-        # Step 2: Post to the page feed
-        feed_url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
-        post_params = {
-            "message": commentary,
-            "access_token": page_access_token
-        }
-        post_res = requests.post(feed_url, json=post_params)
+        # Step 2: Post to the page feed or photos
+        if image_url:
+            photos_url = f"https://graph.facebook.com/v20.0/{page_id}/photos"
+            post_params = {
+                "url": image_url,
+                "caption": commentary,
+                "access_token": page_access_token
+            }
+            post_res = requests.post(photos_url, json=post_params)
+        else:
+            feed_url = f"https://graph.facebook.com/v20.0/{page_id}/feed"
+            post_params = {
+                "message": commentary,
+                "access_token": page_access_token
+            }
+            post_res = requests.post(feed_url, json=post_params)
         post_res.raise_for_status()
         return post_res.json()
 
-    def _publish_instagram_post(self, access_token: str, commentary: str) -> dict[str, str]:
+    def _publish_instagram_post(self, access_token: str, commentary: str, image_url: str | None = None) -> dict[str, str]:
         """
         Publishes an image post with caption to Instagram Business account.
         Requires Instagram Business ID, which is fetched via Facebook Page.
@@ -157,10 +166,11 @@ class FacebookClient(SocialClient):
 
         ig_user_id = ig_account["id"]
 
-        # Step 3: Create Media Container (Requires a public image. Using a beautiful abstract default)
+        # Step 3: Create Media Container (Requires a public image)
+        target_image_url = image_url or "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
         media_url = f"https://graph.facebook.com/v20.0/{ig_user_id}/media"
         media_payload = {
-            "image_url": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe",
+            "image_url": target_image_url,
             "caption": commentary,
             "access_token": page_access_token
         }
