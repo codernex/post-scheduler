@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { CreateScheduleDialog } from "@/components/create-schedule-dialog";
+import { EditScheduleDialog } from "@/components/edit-schedule-dialog";
 import { useUser } from "@/lib/user-context";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { 
@@ -34,9 +35,11 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  Pencil,
   Trash2,
   ListTodo
 } from "lucide-react";
+
 import { format } from "date-fns";
 
 interface Platform {
@@ -83,6 +86,10 @@ function DashboardContent() {
   // Creation Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Edit Dialog state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
+
   // Upgrade Modal state
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
@@ -92,6 +99,12 @@ function DashboardContent() {
   const [selectedScheduleLogs, setSelectedScheduleLogs] = useState<ScheduleLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logsScheduleId, setLogsScheduleId] = useState<number | null>(null);
+
+  const handleEditClick = (schedule: Schedule) => {
+    setEditingSchedule(schedule);
+    setIsEditDialogOpen(true);
+  };
+
 
 
   const fetchStatus = async () => {
@@ -335,6 +348,15 @@ function DashboardContent() {
           schedules={schedules}
         />
 
+        <EditScheduleDialog
+          platforms={connectedPlatforms}
+          schedule={editingSchedule}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onScheduleUpdated={fetchSchedules}
+        />
+
+
         <UpgradeModal
           open={isUpgradeOpen}
           onOpenChange={setIsUpgradeOpen}
@@ -550,6 +572,16 @@ function DashboardContent() {
                         <Button 
                           size="icon-xs" 
                           variant="ghost" 
+                          className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 cursor-pointer"
+                          onClick={() => handleEditClick(schedule)}
+                          title="Edit & Reschedule"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+
+                        <Button 
+                          size="icon-xs" 
+                          variant="ghost" 
                           className="h-8 w-8 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 cursor-pointer"
                           onClick={() => handleOpenLogs(schedule.id)}
                           title="View Execution Logs"
@@ -567,6 +599,7 @@ function DashboardContent() {
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
+
                     </div>
                   );
                 })}

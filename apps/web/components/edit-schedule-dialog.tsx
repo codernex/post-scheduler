@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
   AlertCircle,
   CheckCircle2,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
-import { createScheduleApiV1SchedulerPost } from "@repo/api-client";
+import { updateScheduleApiV1SchedulerScheduleIdPut } from "@repo/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -30,40 +31,41 @@ import { DateTimePicker } from "@/components/ui/datetime-picker";
 import { useUser } from "@/lib/user-context";
 import { UpgradeModal } from "@/components/upgrade-modal";
 
-export interface CreateScheduleDialogProps {
-  /** List of connected social platforms (must have `id` and `name`) */
-  platforms: Array<{ id: number; name: string; connected?: boolean }>;
-  /** Controls dialog visibility */
-  open: boolean;
-  /** Called when the dialog should open or close */
-  onOpenChange: (open: boolean) => void;
-  /** Called after a schedule is successfully created — use to refetch data */
-  onScheduleCreated: () => void;
-  /** List of currently existing schedules to enforce limits */
-  schedules?: Array<{
-    id: number;
-    social_media_id: number;
-    scheduled_at: string;
-    recurrence: number;
-    recurrence_unit: string;
-    max_runs: number;
-    runs_completed: number;
-    status: string;
-    prompt?: string | null;
-  }>;
+export interface ScheduleItem {
+  id: number;
+  social_media_id: number;
+  scheduled_at: string;
+  recurrence: number;
+  recurrence_unit: string;
+  max_runs: number;
+  runs_completed: number;
+  status: string;
+  prompt?: string | null;
 }
 
-export function CreateScheduleDialog({
+export interface EditScheduleDialogProps {
+  /** List of connected social platforms */
+  platforms: Array<{ id: number; name: string; connected?: boolean }>;
+  /** The schedule to edit/reschedule */
+  schedule: ScheduleItem | null;
+  /** Controls dialog visibility */
+  open: boolean;
+  /** Called when the dialog visibility changes */
+  onOpenChange: (open: boolean) => void;
+  /** Called after a schedule is successfully updated */
+  onScheduleUpdated: () => void;
+}
+
+export function EditScheduleDialog({
   platforms,
+  schedule,
   open,
   onOpenChange,
-  onScheduleCreated,
-  schedules = [],
-}: CreateScheduleDialogProps) {
-  const { user, isAdmin, isPro } = useUser();
+  onScheduleUpdated,
+}: EditScheduleDialogProps) {
+  const { isAdmin, isPro } = useUser();
   const hasUnlimitedAccess = isAdmin || isPro;
 
-  
   // Form state
   const [selectedPlatformId, setSelectedPlatformId] = useState<string>("");
   const [scheduledAt, setScheduledAt] = useState<Date | undefined>(undefined);
@@ -72,39 +74,32 @@ export function CreateScheduleDialog({
   const [maxRuns, setMaxRuns] = useState<number>(1);
   const [prompt, setPrompt] = useState<string>("");
   const [autoPost, setAutoPost] = useState<boolean>(true);
+  const [resetRunsCompleted, setResetRunsCompleted] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState(false);
-
-  React.useEffect(() => {
-    if (user && user.auto_post !== undefined) {
-      setAutoPost(user.auto_post);
-    }
-  }, [user, open]);
 
   // Upgrade modal state
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
 
-  // Determine if standard user has already scheduled posts on some platform
-  const existingPlatformIds = React.useMemo(() => {
-    if (!schedules || schedules.length === 0) return [];
-    return Array.from(new Set(schedules.map(s => s.social_media_id)));
-  }, [schedules]);
+  useEffect(() => {
+    if (schedule) {
+      setSelectedPlatformId(schedule.social_media_id.toString());
+      setScheduledAt(schedule.scheduled_at ? new Date(schedule.scheduled_at) : undefined);
+      setRecurrence(schedule.recurrence ?? 1);
+      setRecurrenceUnit(schedule.recurrence_unit || "day");
+      setMaxRuns(schedule.max_runs ?? 1);
+      setPrompt(schedule.prompt || "");
+      setAutoPost((schedule as any).auto_post ?? true);
+      setResetRunsCompleted(false);
+    }
+  }, [schedule, open]);
 
-  const scheduledPlatformId = existingPlatformIds[0]; // Free tier is limited to 1 platform total
   const isMaxRunsExceeded = !hasUnlimitedAccess && maxRuns > 10;
-
-  const resetForm = () => {
-    setSelectedPlatformId("");
-    setScheduledAt(undefined);
-    setRecurrence(1);
-    setRecurrenceUnit("day");
-    setMaxRuns(1);
-    setPrompt("");
-    setAutoPost(user?.auto_post ?? true);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!schedule) return;
 
     if (!selectedPlatformId) {
       toast.error("Please select a platform.");
@@ -131,7 +126,6 @@ export function CreateScheduleDialog({
       return;
     }
 
-    // Limit enforcement on submit
     if (!hasUnlimitedAccess && maxRuns > 10) {
       setUpgradeReason("The Free plan is limited to a maximum of 10 runs per schedule configuration.");
       setIsUpgradeOpen(true);
@@ -140,17 +134,20 @@ export function CreateScheduleDialog({
 
     try {
       setSubmitting(true);
-      // Include the browser's timezone offset so the backend knows the user's local time
       const dateTimeWithOffset = format(scheduledAt, "yyyy-MM-dd'T'HH:mm:ssxxx");
 
-      const response = await createScheduleApiV1SchedulerPost({
+      const response = await updateScheduleApiV1SchedulerScheduleIdPut({
+        path: {
+          schedule_id: schedule.id,
+        },
         body: {
           social_media_id: parseInt(selectedPlatformId),
           scheduled_at: dateTimeWithOffset,
           recurrence: recurrence,
           recurrence_unit: recurrenceUnit,
           max_runs: maxRuns,
-          prompt: prompt.trim() === "" ? undefined : prompt.trim(),
+          prompt: prompt.trim() === "" ? null : prompt.trim(),
+          reset_runs_completed: resetRunsCompleted,
           auto_post: autoPost,
         },
       });
@@ -158,21 +155,20 @@ export function CreateScheduleDialog({
 
       if (response.error) {
         const errorBody = response.error as { detail?: string };
-        const detail = errorBody?.detail || "Failed to create schedule";
+        const detail = errorBody?.detail || "Failed to update schedule";
         toast.error(
           typeof detail === "string" ? detail : JSON.stringify(detail)
         );
       } else {
-        toast.success("Schedule created successfully!", {
+        toast.success("Schedule updated and rescheduled!", {
           icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
         });
-        resetForm();
         onOpenChange(false);
-        onScheduleCreated();
+        onScheduleUpdated();
       }
     } catch (err) {
       console.error(err);
-      toast.error("An unexpected error occurred while scheduling.");
+      toast.error("An unexpected error occurred while updating schedule.");
     } finally {
       setSubmitting(false);
     }
@@ -180,20 +176,15 @@ export function CreateScheduleDialog({
 
   return (
     <>
-      <Dialog
-        open={open}
-        onOpenChange={(newOpen) => {
-          if (!newOpen) resetForm();
-          onOpenChange(newOpen);
-        }}
-      >
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle>New Schedule</DialogTitle>
+            <DialogTitle>Edit & Reschedule Post</DialogTitle>
             <DialogDescription>
-              Plan your post recurrence, timezone and AI prompt instructions.
+              Update prompt, times, recurrence, and status for Schedule #{schedule?.id}.
             </DialogDescription>
           </DialogHeader>
+
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             {/* Social Account */}
             <div className="space-y-1.5">
@@ -203,9 +194,7 @@ export function CreateScheduleDialog({
               {platforms.length === 0 ? (
                 <div className="flex items-center gap-2 p-3 text-sm rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400">
                   <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>
-                    No connected accounts. Please connect a platform first.
-                  </span>
+                  <span>No connected accounts available.</span>
                 </div>
               ) : (
                 <Select
@@ -221,17 +210,11 @@ export function CreateScheduleDialog({
                         p.name.toLowerCase().includes("instagram") ||
                         p.name.toLowerCase().includes("threads") ||
                         p.name.toLowerCase().includes("thread");
-                      
+
                       const isFacebookDisabled =
                         p.name.toLowerCase().includes("facebook");
-                      
-                      // Free tier limit: only 1 platform schedule
-                      const isPlatformLocked = 
-                        !hasUnlimitedAccess && 
-                        scheduledPlatformId !== undefined && 
-                        p.id !== scheduledPlatformId;
 
-                      const isDisabled = isInstagramDisabled || isFacebookDisabled || isPlatformLocked;
+                      const isDisabled = isInstagramDisabled || isFacebookDisabled;
 
                       return (
                         <SelectItem
@@ -239,10 +222,9 @@ export function CreateScheduleDialog({
                           value={p.id.toString()}
                           disabled={isDisabled}
                         >
-                          {p.name} 
+                          {p.name}
                           {isInstagramDisabled && " (Disabled)"}
                           {isFacebookDisabled && " (Temporarily Disabled)"}
-                          {isPlatformLocked && " (Pro Only: Limited to 1 Platform)"}
                         </SelectItem>
                       );
                     })}
@@ -273,7 +255,7 @@ export function CreateScheduleDialog({
             {/* Schedule Date & Time */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-400">
-                Schedule Date & Time
+                New Schedule Date & Time
               </label>
               <DateTimePicker
                 value={scheduledAt}
@@ -358,15 +340,31 @@ export function CreateScheduleDialog({
               />
             </div>
 
-            <DialogFooter className="pt-4">
+            {/* Reset runs completed checkbox */}
+            {schedule && (schedule.runs_completed > 0 || schedule.status === "FINISHED") && (
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="resetRuns"
+                  checked={resetRunsCompleted}
+                  onChange={(e) => setResetRunsCompleted(e.target.checked)}
+                  className="rounded border-slate-800 bg-slate-950 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
+                />
+                <label htmlFor="resetRuns" className="text-xs text-slate-300 flex items-center gap-1 cursor-pointer">
+                  <RefreshCw className="w-3.5 h-3.5 text-indigo-400" />
+                  Reset completed runs counter ({schedule.runs_completed} / {schedule.max_runs} done)
+                </label>
+              </div>
+            )}
 
+            <DialogFooter className="pt-4">
               <Button
                 type="submit"
                 disabled={submitting || platforms.length === 0}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white w-full cursor-pointer h-10 flex items-center justify-center gap-2"
               >
                 {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>Schedule Post</span>
+                <span>Save & Reschedule</span>
               </Button>
             </DialogFooter>
           </form>
@@ -381,4 +379,3 @@ export function CreateScheduleDialog({
     </>
   );
 }
-

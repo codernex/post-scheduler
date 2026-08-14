@@ -5,6 +5,16 @@ export type ClientOptions = {
 };
 
 /**
+ * ApproveDraftPayload
+ */
+export type ApproveDraftPayload = {
+    /**
+     * Post Text
+     */
+    post_text?: string | null;
+};
+
+/**
  * ContactCreate
  */
 export type ContactCreate = {
@@ -98,6 +108,10 @@ export type CreateSchedulePayload = {
      * Prompt
      */
     prompt?: string | null;
+    /**
+     * Auto Post
+     */
+    auto_post?: boolean | null;
 };
 
 /**
@@ -150,6 +164,14 @@ export type CreateUserResponse = {
      * Is Verified
      */
     is_verified: boolean;
+    /**
+     * Auto Post
+     */
+    auto_post?: boolean;
+    /**
+     * Email Notifications
+     */
+    email_notifications?: boolean;
 };
 
 /**
@@ -244,12 +266,24 @@ export type ScheduleResponse = {
      * Prompt
      */
     prompt: string | null;
+    /**
+     * Auto Post
+     */
+    auto_post?: boolean;
+    /**
+     * Draft Post Text
+     */
+    draft_post_text?: string | null;
+    /**
+     * Draft Image Url
+     */
+    draft_image_url?: string | null;
 };
 
 /**
  * ScheduleStatus
  */
-export type ScheduleStatus = 'SCHEDULED' | 'PUBLISHED' | 'FAILED' | 'PENDING' | 'FINISHED';
+export type ScheduleStatus = 'SCHEDULED' | 'PUBLISHED' | 'FAILED' | 'PENDING' | 'FINISHED' | 'NEEDS_APPROVAL';
 
 /**
  * SchedulerLogResponse
@@ -301,6 +335,58 @@ export type SocialPlatformStatus = {
      * Expires At
      */
     expires_at?: string | null;
+};
+
+/**
+ * UpdateSchedulePayload
+ */
+export type UpdateSchedulePayload = {
+    /**
+     * Social Media Id
+     */
+    social_media_id?: number | null;
+    /**
+     * Recurrence
+     */
+    recurrence?: number | null;
+    /**
+     * Recurrence Unit
+     */
+    recurrence_unit?: string | null;
+    /**
+     * Max Runs
+     */
+    max_runs?: number | null;
+    /**
+     * Scheduled At
+     */
+    scheduled_at?: string | null;
+    /**
+     * Prompt
+     */
+    prompt?: string | null;
+    /**
+     * Reset Runs Completed
+     */
+    reset_runs_completed?: boolean;
+    /**
+     * Auto Post
+     */
+    auto_post?: boolean | null;
+};
+
+/**
+ * UpdateUserSettingsPayload
+ */
+export type UpdateUserSettingsPayload = {
+    /**
+     * Auto Post
+     */
+    auto_post?: boolean | null;
+    /**
+     * Email Notifications
+     */
+    email_notifications?: boolean | null;
 };
 
 /**
@@ -783,6 +869,76 @@ export type DeleteScheduleApiV1SchedulerScheduleIdDeleteResponses = {
 
 export type DeleteScheduleApiV1SchedulerScheduleIdDeleteResponse = DeleteScheduleApiV1SchedulerScheduleIdDeleteResponses[keyof DeleteScheduleApiV1SchedulerScheduleIdDeleteResponses];
 
+export type UpdateScheduleApiV1SchedulerScheduleIdPatchData = {
+    body: UpdateSchedulePayload;
+    path: {
+        /**
+         * Schedule Id
+         */
+        schedule_id: number;
+    };
+    query?: {
+        /**
+         * Token
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/scheduler/{schedule_id}';
+};
+
+export type UpdateScheduleApiV1SchedulerScheduleIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateScheduleApiV1SchedulerScheduleIdPatchError = UpdateScheduleApiV1SchedulerScheduleIdPatchErrors[keyof UpdateScheduleApiV1SchedulerScheduleIdPatchErrors];
+
+export type UpdateScheduleApiV1SchedulerScheduleIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: ScheduleResponse;
+};
+
+export type UpdateScheduleApiV1SchedulerScheduleIdPatchResponse = UpdateScheduleApiV1SchedulerScheduleIdPatchResponses[keyof UpdateScheduleApiV1SchedulerScheduleIdPatchResponses];
+
+export type UpdateScheduleApiV1SchedulerScheduleIdPutData = {
+    body: UpdateSchedulePayload;
+    path: {
+        /**
+         * Schedule Id
+         */
+        schedule_id: number;
+    };
+    query?: {
+        /**
+         * Token
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/scheduler/{schedule_id}';
+};
+
+export type UpdateScheduleApiV1SchedulerScheduleIdPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateScheduleApiV1SchedulerScheduleIdPutError = UpdateScheduleApiV1SchedulerScheduleIdPutErrors[keyof UpdateScheduleApiV1SchedulerScheduleIdPutErrors];
+
+export type UpdateScheduleApiV1SchedulerScheduleIdPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: ScheduleResponse;
+};
+
+export type UpdateScheduleApiV1SchedulerScheduleIdPutResponse = UpdateScheduleApiV1SchedulerScheduleIdPutResponses[keyof UpdateScheduleApiV1SchedulerScheduleIdPutResponses];
+
 export type GetScheduleLogsApiV1SchedulerScheduleIdLogsGetData = {
     body?: never;
     path: {
@@ -819,6 +975,109 @@ export type GetScheduleLogsApiV1SchedulerScheduleIdLogsGetResponses = {
 };
 
 export type GetScheduleLogsApiV1SchedulerScheduleIdLogsGetResponse = GetScheduleLogsApiV1SchedulerScheduleIdLogsGetResponses[keyof GetScheduleLogsApiV1SchedulerScheduleIdLogsGetResponses];
+
+export type ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostData = {
+    /**
+     * Payload
+     */
+    body?: ApproveDraftPayload | null;
+    path: {
+        /**
+         * Schedule Id
+         */
+        schedule_id: number;
+    };
+    query?: {
+        /**
+         * Token
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/scheduler/{schedule_id}/approve';
+};
+
+export type ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostError = ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostErrors[keyof ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostErrors];
+
+export type ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ScheduleResponse;
+};
+
+export type ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostResponse = ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostResponses[keyof ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostResponses];
+
+export type RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostData = {
+    body?: never;
+    path: {
+        /**
+         * Schedule Id
+         */
+        schedule_id: number;
+    };
+    query?: {
+        /**
+         * Token
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/scheduler/{schedule_id}/reject';
+};
+
+export type RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostError = RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostErrors[keyof RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostErrors];
+
+export type RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: ScheduleResponse;
+};
+
+export type RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostResponse = RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostResponses[keyof RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostResponses];
+
+export type UpdateUserSettingsApiV1UsersMePatchData = {
+    body: UpdateUserSettingsPayload;
+    path?: never;
+    query?: {
+        /**
+         * Token
+         */
+        token?: string | null;
+    };
+    url: '/api/v1/users/me';
+};
+
+export type UpdateUserSettingsApiV1UsersMePatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateUserSettingsApiV1UsersMePatchError = UpdateUserSettingsApiV1UsersMePatchErrors[keyof UpdateUserSettingsApiV1UsersMePatchErrors];
+
+export type UpdateUserSettingsApiV1UsersMePatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: CreateUserResponse;
+};
+
+export type UpdateUserSettingsApiV1UsersMePatchResponse = UpdateUserSettingsApiV1UsersMePatchResponses[keyof UpdateUserSettingsApiV1UsersMePatchResponses];
 
 export type UpgradeUserApiV1UsersUpgradePostData = {
     body?: never;

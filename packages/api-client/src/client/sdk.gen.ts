@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { CreateScheduleApiV1SchedulerPost2Data, CreateScheduleApiV1SchedulerPost2Errors, CreateScheduleApiV1SchedulerPost2Responses, CreateScheduleApiV1SchedulerPostData, CreateScheduleApiV1SchedulerPostErrors, CreateScheduleApiV1SchedulerPostResponses, DeleteScheduleApiV1SchedulerScheduleIdDeleteData, DeleteScheduleApiV1SchedulerScheduleIdDeleteErrors, DeleteScheduleApiV1SchedulerScheduleIdDeleteResponses, DisconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDeleteData, DisconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDeleteErrors, DisconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDeleteResponses, FacebookCallbackApiV1SocialMediaConnectFacebookCallbackGetData, FacebookCallbackApiV1SocialMediaConnectFacebookCallbackGetErrors, FacebookCallbackApiV1SocialMediaConnectFacebookCallbackGetResponses, FacebookConnectApiV1SocialMediaConnectFacebookGetData, FacebookConnectApiV1SocialMediaConnectFacebookGetErrors, FacebookConnectApiV1SocialMediaConnectFacebookGetResponses, GetScheduleApiV1SchedulerGet2Data, GetScheduleApiV1SchedulerGet2Errors, GetScheduleApiV1SchedulerGet2Responses, GetScheduleApiV1SchedulerGetData, GetScheduleApiV1SchedulerGetErrors, GetScheduleApiV1SchedulerGetResponses, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetData, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetErrors, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetResponses, GetSocialConnectionStatusApiV1SocialMediaStatusGetData, GetSocialConnectionStatusApiV1SocialMediaStatusGetErrors, GetSocialConnectionStatusApiV1SocialMediaStatusGetResponses, LinkedinCallbackApiV1SocialMediaConnectLinkedinCallbackGetData, LinkedinCallbackApiV1SocialMediaConnectLinkedinCallbackGetErrors, LinkedinCallbackApiV1SocialMediaConnectLinkedinCallbackGetResponses, LinkedinConnectApiV1SocialMediaConnectLinkedinGetData, LinkedinConnectApiV1SocialMediaConnectLinkedinGetErrors, LinkedinConnectApiV1SocialMediaConnectLinkedinGetResponses, ListContactMessagesApiV1ContactListGetData, ListContactMessagesApiV1ContactListGetErrors, ListContactMessagesApiV1ContactListGetResponses, LoginApiV1AuthLoginPostData, LoginApiV1AuthLoginPostErrors, LoginApiV1AuthLoginPostResponses, MeApiV1AuthMeGetData, MeApiV1AuthMeGetErrors, MeApiV1AuthMeGetResponses, ReplyToContactMessageApiV1ContactMessageIdReplyPostData, ReplyToContactMessageApiV1ContactMessageIdReplyPostErrors, ReplyToContactMessageApiV1ContactMessageIdReplyPostResponses, SignupApiV1AuthSignupPostData, SignupApiV1AuthSignupPostErrors, SignupApiV1AuthSignupPostResponses, SubmitContactFormApiV1ContactSubmitPostData, SubmitContactFormApiV1ContactSubmitPostErrors, SubmitContactFormApiV1ContactSubmitPostResponses, UpgradeUserApiV1UsersUpgradePostData, UpgradeUserApiV1UsersUpgradePostErrors, UpgradeUserApiV1UsersUpgradePostResponses, VerifyEmailApiV1AuthVerifyEmailGetData, VerifyEmailApiV1AuthVerifyEmailGetErrors, VerifyEmailApiV1AuthVerifyEmailGetResponses } from './types.gen';
+import type { ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostData, ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostErrors, ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostResponses, CreateScheduleApiV1SchedulerPost2Data, CreateScheduleApiV1SchedulerPost2Errors, CreateScheduleApiV1SchedulerPost2Responses, CreateScheduleApiV1SchedulerPostData, CreateScheduleApiV1SchedulerPostErrors, CreateScheduleApiV1SchedulerPostResponses, DeleteScheduleApiV1SchedulerScheduleIdDeleteData, DeleteScheduleApiV1SchedulerScheduleIdDeleteErrors, DeleteScheduleApiV1SchedulerScheduleIdDeleteResponses, DisconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDeleteData, DisconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDeleteErrors, DisconnectSocialPlatformApiV1SocialMediaDisconnectPlatformDeleteResponses, FacebookCallbackApiV1SocialMediaConnectFacebookCallbackGetData, FacebookCallbackApiV1SocialMediaConnectFacebookCallbackGetErrors, FacebookCallbackApiV1SocialMediaConnectFacebookCallbackGetResponses, FacebookConnectApiV1SocialMediaConnectFacebookGetData, FacebookConnectApiV1SocialMediaConnectFacebookGetErrors, FacebookConnectApiV1SocialMediaConnectFacebookGetResponses, GetScheduleApiV1SchedulerGet2Data, GetScheduleApiV1SchedulerGet2Errors, GetScheduleApiV1SchedulerGet2Responses, GetScheduleApiV1SchedulerGetData, GetScheduleApiV1SchedulerGetErrors, GetScheduleApiV1SchedulerGetResponses, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetData, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetErrors, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetResponses, GetSocialConnectionStatusApiV1SocialMediaStatusGetData, GetSocialConnectionStatusApiV1SocialMediaStatusGetErrors, GetSocialConnectionStatusApiV1SocialMediaStatusGetResponses, LinkedinCallbackApiV1SocialMediaConnectLinkedinCallbackGetData, LinkedinCallbackApiV1SocialMediaConnectLinkedinCallbackGetErrors, LinkedinCallbackApiV1SocialMediaConnectLinkedinCallbackGetResponses, LinkedinConnectApiV1SocialMediaConnectLinkedinGetData, LinkedinConnectApiV1SocialMediaConnectLinkedinGetErrors, LinkedinConnectApiV1SocialMediaConnectLinkedinGetResponses, ListContactMessagesApiV1ContactListGetData, ListContactMessagesApiV1ContactListGetErrors, ListContactMessagesApiV1ContactListGetResponses, LoginApiV1AuthLoginPostData, LoginApiV1AuthLoginPostErrors, LoginApiV1AuthLoginPostResponses, MeApiV1AuthMeGetData, MeApiV1AuthMeGetErrors, MeApiV1AuthMeGetResponses, RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostData, RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostErrors, RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostResponses, ReplyToContactMessageApiV1ContactMessageIdReplyPostData, ReplyToContactMessageApiV1ContactMessageIdReplyPostErrors, ReplyToContactMessageApiV1ContactMessageIdReplyPostResponses, SignupApiV1AuthSignupPostData, SignupApiV1AuthSignupPostErrors, SignupApiV1AuthSignupPostResponses, SubmitContactFormApiV1ContactSubmitPostData, SubmitContactFormApiV1ContactSubmitPostErrors, SubmitContactFormApiV1ContactSubmitPostResponses, UpdateScheduleApiV1SchedulerScheduleIdPatchData, UpdateScheduleApiV1SchedulerScheduleIdPatchErrors, UpdateScheduleApiV1SchedulerScheduleIdPatchResponses, UpdateScheduleApiV1SchedulerScheduleIdPutData, UpdateScheduleApiV1SchedulerScheduleIdPutErrors, UpdateScheduleApiV1SchedulerScheduleIdPutResponses, UpdateUserSettingsApiV1UsersMePatchData, UpdateUserSettingsApiV1UsersMePatchErrors, UpdateUserSettingsApiV1UsersMePatchResponses, UpgradeUserApiV1UsersUpgradePostData, UpgradeUserApiV1UsersUpgradePostErrors, UpgradeUserApiV1UsersUpgradePostResponses, VerifyEmailApiV1AuthVerifyEmailGetData, VerifyEmailApiV1AuthVerifyEmailGetErrors, VerifyEmailApiV1AuthVerifyEmailGetResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -156,12 +156,73 @@ export const deleteScheduleApiV1SchedulerScheduleIdDelete = <ThrowOnError extend
 });
 
 /**
+ * Update Schedule
+ */
+export const updateScheduleApiV1SchedulerScheduleIdPatch = <ThrowOnError extends boolean = false>(options: Options<UpdateScheduleApiV1SchedulerScheduleIdPatchData, ThrowOnError>): RequestResult<UpdateScheduleApiV1SchedulerScheduleIdPatchResponses, UpdateScheduleApiV1SchedulerScheduleIdPatchErrors, ThrowOnError> => (options.client ?? client).patch<UpdateScheduleApiV1SchedulerScheduleIdPatchResponses, UpdateScheduleApiV1SchedulerScheduleIdPatchErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/scheduler/{schedule_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update Schedule
+ */
+export const updateScheduleApiV1SchedulerScheduleIdPut = <ThrowOnError extends boolean = false>(options: Options<UpdateScheduleApiV1SchedulerScheduleIdPutData, ThrowOnError>): RequestResult<UpdateScheduleApiV1SchedulerScheduleIdPutResponses, UpdateScheduleApiV1SchedulerScheduleIdPutErrors, ThrowOnError> => (options.client ?? client).put<UpdateScheduleApiV1SchedulerScheduleIdPutResponses, UpdateScheduleApiV1SchedulerScheduleIdPutErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/scheduler/{schedule_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Get Schedule Logs
  */
 export const getScheduleLogsApiV1SchedulerScheduleIdLogsGet = <ThrowOnError extends boolean = false>(options: Options<GetScheduleLogsApiV1SchedulerScheduleIdLogsGetData, ThrowOnError>): RequestResult<GetScheduleLogsApiV1SchedulerScheduleIdLogsGetResponses, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetErrors, ThrowOnError> => (options.client ?? client).get<GetScheduleLogsApiV1SchedulerScheduleIdLogsGetResponses, GetScheduleLogsApiV1SchedulerScheduleIdLogsGetErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/scheduler/{schedule_id}/logs',
     ...options
+});
+
+/**
+ * Approve Schedule Draft
+ */
+export const approveScheduleDraftApiV1SchedulerScheduleIdApprovePost = <ThrowOnError extends boolean = false>(options: Options<ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostData, ThrowOnError>): RequestResult<ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostResponses, ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostErrors, ThrowOnError> => (options.client ?? client).post<ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostResponses, ApproveScheduleDraftApiV1SchedulerScheduleIdApprovePostErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/scheduler/{schedule_id}/approve',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Reject Schedule Draft
+ */
+export const rejectScheduleDraftApiV1SchedulerScheduleIdRejectPost = <ThrowOnError extends boolean = false>(options: Options<RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostData, ThrowOnError>): RequestResult<RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostResponses, RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostErrors, ThrowOnError> => (options.client ?? client).post<RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostResponses, RejectScheduleDraftApiV1SchedulerScheduleIdRejectPostErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/scheduler/{schedule_id}/reject',
+    ...options
+});
+
+/**
+ * Update User Settings
+ */
+export const updateUserSettingsApiV1UsersMePatch = <ThrowOnError extends boolean = false>(options: Options<UpdateUserSettingsApiV1UsersMePatchData, ThrowOnError>): RequestResult<UpdateUserSettingsApiV1UsersMePatchResponses, UpdateUserSettingsApiV1UsersMePatchErrors, ThrowOnError> => (options.client ?? client).patch<UpdateUserSettingsApiV1UsersMePatchResponses, UpdateUserSettingsApiV1UsersMePatchErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/users/me',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**

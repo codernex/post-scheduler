@@ -10,6 +10,8 @@ export interface User {
   email: string;
   role: "admin" | "user" | string;
   tier: "free" | "pro" | string;
+  auto_post?: boolean;
+  email_notifications?: boolean;
   created_at: string;
 }
 

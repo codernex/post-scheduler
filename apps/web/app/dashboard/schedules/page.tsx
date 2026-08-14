@@ -25,18 +25,23 @@ import {
   Layers,
   ListTodo,
   Loader2,
+  Pencil,
   Plus,
   Search,
+  Sparkles,
   Trash2,
   XCircle
 } from "lucide-react";
 import React, { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CreateScheduleDialog } from "@/components/create-schedule-dialog";
+import { EditScheduleDialog } from "@/components/edit-schedule-dialog";
+import { ReviewDraftDialog } from "@/components/review-draft-dialog";
 import { useUser } from "@/lib/user-context";
 import { UpgradeModal } from "@/components/upgrade-modal";
 
-type FilterTab = "ALL" | "SCHEDULED" | "PUBLISHED" | "FAILED";
+
+type FilterTab = "ALL" | "SCHEDULED" | "NEEDS_APPROVAL" | "PUBLISHED" | "FAILED";
 
 interface Platform {
   id: number;
@@ -55,8 +60,12 @@ interface Schedule {
   runs_completed: number;
   status: string;
   prompt?: string | null;
+  auto_post?: boolean;
+  draft_post_text?: string | null;
+  draft_image_url?: string | null;
   created_at: string;
 }
+
 
 interface ScheduleLog {
   id: number;
@@ -79,6 +88,14 @@ function SchedulesContent() {
   // Creation Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Edit Dialog state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
+
+  // Review Draft Dialog state
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [reviewSchedule, setReviewSchedule] = useState<Schedule | null>(null);
+
   // Upgrade Modal state
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
@@ -88,6 +105,18 @@ function SchedulesContent() {
   const [selectedScheduleLogs, setSelectedScheduleLogs] = useState<ScheduleLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logsScheduleId, setLogsScheduleId] = useState<number | null>(null);
+
+  const handleEditClick = (schedule: Schedule) => {
+    setEditingSchedule(schedule);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleReviewClick = (schedule: Schedule) => {
+    setReviewSchedule(schedule);
+    setIsReviewOpen(true);
+  };
+
+
 
   const fetchStatusAndSchedules = async () => {
     try {
@@ -183,6 +212,12 @@ function SchedulesContent() {
             <XCircle className="w-3.5 h-3.5" /> Failed
           </span>
         );
+      case "NEEDS_APPROVAL":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <Sparkles className="w-3.5 h-3.5" /> Needs Review
+          </span>
+        );
       default:
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
@@ -247,6 +282,21 @@ function SchedulesContent() {
           schedules={schedules}
         />
 
+        <EditScheduleDialog
+          platforms={connectedPlatforms}
+          schedule={editingSchedule}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onScheduleUpdated={fetchStatusAndSchedules}
+        />
+
+        <ReviewDraftDialog
+          schedule={reviewSchedule}
+          open={isReviewOpen}
+          onOpenChange={setIsReviewOpen}
+          onDraftProcessed={fetchStatusAndSchedules}
+        />
+
         <UpgradeModal
           open={isUpgradeOpen}
           onOpenChange={setIsUpgradeOpen}
@@ -254,13 +304,43 @@ function SchedulesContent() {
         />
       </div>
 
+      {/* Draft Notification Banner */}
+      {(() => {
+        const draftCount = schedules.filter(s => s.status === "NEEDS_APPROVAL").length;
+        if (draftCount === 0) return null;
+        return (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-slate-900 border border-amber-500/30 text-amber-200">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 shrink-0">
+                <Sparkles className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-amber-100">
+                  {draftCount} Post Draft{draftCount > 1 ? "s" : ""} Awaiting Review
+                </h4>
+                <p className="text-xs text-amber-300/80">
+                  Auto-publish is off for these schedules. Review, edit, and approve them before they publish.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setActiveTab("NEEDS_APPROVAL")}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs h-8 px-3 cursor-pointer shrink-0"
+            >
+              Filter Needs Review ({draftCount})
+            </Button>
+          </div>
+        );
+      })()}
+
       {/* Main Table Card */}
       <Card className="bg-slate-900/40 border-slate-800 backdrop-blur-md">
         <CardHeader className="pb-3 border-b border-slate-800/80">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             {/* Filter Tabs */}
             <div className="flex bg-slate-950/40 p-1 rounded-lg border border-slate-800/60 self-start">
-              {(["ALL", "SCHEDULED", "PUBLISHED", "FAILED"] as FilterTab[]).map((tab) => (
+              {(["ALL", "SCHEDULED", "NEEDS_APPROVAL", "PUBLISHED", "FAILED"] as FilterTab[]).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -270,10 +350,11 @@ function SchedulesContent() {
                       : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/40"
                   }`}
                 >
-                  {tab.charAt(0) + tab.slice(1).toLowerCase()}
+                  {tab === "NEEDS_APPROVAL" ? "Needs Review" : tab.charAt(0) + tab.slice(1).toLowerCase()}
                 </button>
               ))}
             </div>
+
 
             {/* Search Input */}
             <div className="relative w-full md:w-72">
@@ -328,7 +409,7 @@ function SchedulesContent() {
                         className="hover:bg-slate-900/20 transition-colors"
                       >
                         <td className="p-4 pl-6 font-mono text-xs text-slate-500">#{schedule.id}</td>
-                        <td className="p-4">
+                        <td className="p-4 max-w-sm">
                           <div className="font-semibold text-sm flex items-center gap-2">
                             {platformName.toLowerCase() === "linkedin" ? (
                               <svg className="w-4 h-4 fill-current text-blue-400 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -339,11 +420,27 @@ function SchedulesContent() {
                             )}
                             <span>{platformName}</span>
                           </div>
-                          {schedule.prompt && (
+
+                          {schedule.draft_post_text && schedule.status === "NEEDS_APPROVAL" ? (
+                            <button
+                              onClick={() => handleReviewClick(schedule)}
+                              className="mt-2 text-left w-full p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 transition-all cursor-pointer group"
+                            >
+                              <div className="flex items-center justify-between text-[11px] font-semibold text-amber-300 mb-1">
+                                <span className="flex items-center gap-1">
+                                  <Sparkles className="w-3 h-3 text-amber-400" /> Draft Ready for Review
+                                </span>
+                                <span className="underline group-hover:text-amber-200">Edit Draft &rarr;</span>
+                              </div>
+                              <p className="text-xs text-slate-300 line-clamp-2 italic font-normal">
+                                &ldquo;{schedule.draft_post_text}&rdquo;
+                              </p>
+                            </button>
+                          ) : schedule.prompt ? (
                             <p className="text-xs text-slate-400 mt-1 line-clamp-1 italic max-w-xs" title={schedule.prompt}>
                               Prompt: &ldquo;{schedule.prompt}&rdquo;
                             </p>
-                          )}
+                          ) : null}
                         </td>
                         <td className="p-4 text-sm text-slate-300 whitespace-nowrap">
                           Every {schedule.recurrence} {schedule.recurrence_unit || "day"}(s)
@@ -385,6 +482,27 @@ function SchedulesContent() {
                         </td>
                         <td className="p-4 pr-6 text-right">
                           <div className="flex items-center justify-end gap-1">
+                            {schedule.status === "NEEDS_APPROVAL" && (
+                              <Button
+                                size="sm"
+                                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs h-8 px-2.5 gap-1.5 cursor-pointer font-medium"
+                                onClick={() => handleReviewClick(schedule)}
+                                title="Review & Edit AI Draft"
+                              >
+                                <Sparkles className="w-3.5 h-3.5" /> Review Draft
+                              </Button>
+                            )}
+
+                            <Button 
+                              size="icon-xs" 
+                              variant="ghost" 
+                              className="h-8 w-8 text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 cursor-pointer"
+                              onClick={() => handleEditClick(schedule)}
+                              title="Edit & Reschedule"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+
                             <Button 
                               size="icon-xs" 
                               variant="ghost" 
@@ -406,6 +524,7 @@ function SchedulesContent() {
                             </Button>
                           </div>
                         </td>
+
                       </tr>
                     );
                   })}
