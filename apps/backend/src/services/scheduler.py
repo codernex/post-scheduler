@@ -73,9 +73,13 @@ class SchedulerService:
                 detail="Facebook scheduling is temporarily disabled for testing."
             )
 
+        # Fetch user to check global preferences
+        user = await self._db.get(User, user_id)
+
         # Prepare data and save
         schedule_data = payload.model_dump(exclude={"scheduled_at"})
-
+        if "auto_post" not in schedule_data or schedule_data["auto_post"] is None:
+            schedule_data["auto_post"] = user.auto_post if user else True
 
         schedule = Scheduler(
             **schedule_data,
@@ -177,9 +181,14 @@ class SchedulerService:
         if payload.prompt is not None:
             schedule.prompt = payload.prompt
 
+        if payload.auto_post is not None:
+            schedule.auto_post = payload.auto_post
+
         changes_desc = []
         if payload.prompt is not None:
             changes_desc.append("Prompt updated")
+        if payload.auto_post is not None:
+            changes_desc.append(f"Auto post set to {schedule.auto_post}")
         if payload.recurrence is not None or payload.recurrence_unit is not None:
             changes_desc.append(f"Recurrence set to {schedule.recurrence} {schedule.recurrence_unit}(s)")
         if payload.max_runs is not None:
@@ -231,5 +240,106 @@ class SchedulerService:
         await self._db.refresh(schedule)
 
         return schedule
+
+    async def approve_and_publish_draft(self, schedule_id: int, user_id: int, post_text: str | None = None) -> Scheduler:
+        stmt = select(Scheduler).where(Scheduler.id == schedule_id, Scheduler.user_id == user_id)
+        result = await self._db.execute(stmt)
+        schedule = result.scalar_one_or_none()
+
+        if not schedule:
+            raise HTTPException(status_code=404, detail="Schedule not found or unauthorized")
+
+        if schedule.status != "NEEDS_APPROVAL" or not schedule.draft_post_text:
+            raise HTTPException(status_code=400, detail="Schedule does not have a draft post pending approval")
+
+        final_post_text = post_text if (post_text and post_text.strip()) else schedule.draft_post_text
+        image_url = schedule.draft_image_url
+
+        from services.scheduler_worker import get_platform_access_token, linkedin_client
+        from models import SocialMedia
+        from fastapi.concurrency import run_in_threadpool
+        import utils
+
+        platform_result = await self._db.execute(
+            select(SocialMedia).where(SocialMedia.id == schedule.social_media_id)
+        )
+        platform_model = platform_result.scalar_one_or_none()
+        if not platform_model:
+            raise HTTPException(status_code=404, detail="Social media platform connection not found")
+
+        platform_name = platform_model.name
+
+        if "linkedin" in platform_name.lower():
+            access_token = await get_platform_access_token(schedule.user_id, schedule.social_media_id, self._db)
+            author = await run_in_threadpool(linkedin_client.get_user_info, access_token)
+            urn = linkedin_client.get_person_urn(author["sub"])
+            await run_in_threadpool(
+                linkedin_client.publish_post, access_token, urn, final_post_text, image_url
+            )
+        elif "facebook" in platform_name.lower() or "instagram" in platform_name.lower() or "thread" in platform_name.lower():
+            access_token = await get_platform_access_token(schedule.user_id, schedule.social_media_id, self._db)
+            facebook_client = utils.FacebookClient()
+            author = await run_in_threadpool(facebook_client.get_user_info, access_token)
+            urn = f"facebook:{author.get('id')}"
+            await run_in_threadpool(
+                facebook_client.publish_post, access_token, urn, final_post_text, platform_name=platform_name, image_url=image_url
+            )
+
+        from agent.agent import PostingAgent
+        agent = PostingAgent(scheduler_id=schedule.id, prompt=schedule.prompt, platform=platform_name)
+        await agent.save_post_to_memory(final_post_text, image_url=image_url)
+
+        schedule.runs_completed += 1
+        schedule.draft_post_text = None
+        schedule.draft_image_url = None
+
+        from datetime import timedelta
+        if schedule.runs_completed < schedule.max_runs:
+            unit = schedule.recurrence_unit
+            rec = schedule.recurrence
+            if unit == "minute":
+                schedule.scheduled_at = datetime.now(timezone.utc) + timedelta(minutes=rec)
+            elif unit == "hour":
+                schedule.scheduled_at = datetime.now(timezone.utc) + timedelta(hours=rec)
+            else:
+                schedule.scheduled_at = datetime.now(timezone.utc) + timedelta(days=rec)
+            schedule.status = SchedulerStatus.PENDING.value
+        else:
+            schedule.status = SchedulerStatus.FINISHED.value
+
+        success_log = SchedulerLog(
+            scheduler_id=schedule.id,
+            post_content=f"Approved and posted to platform: {final_post_text}",
+            status="INFO",
+            detail="Draft post approved and published successfully."
+        )
+        self._db.add(success_log)
+        await self._db.commit()
+        await self._db.refresh(schedule)
+        return schedule
+
+    async def reject_draft(self, schedule_id: int, user_id: int) -> Scheduler:
+        stmt = select(Scheduler).where(Scheduler.id == schedule_id, Scheduler.user_id == user_id)
+        result = await self._db.execute(stmt)
+        schedule = result.scalar_one_or_none()
+
+        if not schedule:
+            raise HTTPException(status_code=404, detail="Schedule not found or unauthorized")
+
+        schedule.draft_post_text = None
+        schedule.draft_image_url = None
+        schedule.status = SchedulerStatus.PENDING.value
+
+        reject_log = SchedulerLog(
+            scheduler_id=schedule.id,
+            post_content="Draft post rejected by user.",
+            status="INFO",
+            detail="User discarded AI draft. Schedule reset to PENDING for next trigger."
+        )
+        self._db.add(reject_log)
+        await self._db.commit()
+        await self._db.refresh(schedule)
+        return schedule
+
 
 

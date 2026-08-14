@@ -45,6 +45,10 @@ class Scheduler(Base):
     status: Mapped[str] = mapped_column(String(20), default="active")
     user_timezone: Mapped[str] = mapped_column(String(50))
     prompt: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    auto_post: Mapped[bool] = mapped_column(default=True, server_default="true", nullable=False)
+    draft_post_text: Mapped[str | None] = mapped_column(String(5000), nullable=True)
+    draft_image_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+
 
     # Relationship to the new execution queue
     executions: Mapped[list["TaskExecution"]] = relationship(

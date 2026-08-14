@@ -17,6 +17,15 @@ class CreateUserResponse(BaseModel):
     role: str
     tier: str
     is_verified: bool
+    auto_post: bool = True
+    email_notifications: bool = True
+
+
+class UpdateUserSettingsPayload(BaseModel):
+    auto_post: bool | None = None
+    email_notifications: bool | None = None
+
+
 
 
 

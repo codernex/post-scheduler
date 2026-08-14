@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.dependencies import get_current_user
 from services.scheduler import SchedulerService
 from core import get_db
-from dto import CreateSchedulePayload, UpdateSchedulePayload, ScheduleResponse, SchedulerLogResponse
+from dto import CreateSchedulePayload, UpdateSchedulePayload, ScheduleResponse, SchedulerLogResponse, ApproveDraftPayload
 from models import User
 
 scheduler_router = APIRouter(
@@ -64,3 +64,25 @@ async def update_schedule(schedule_id: int, payload: UpdateSchedulePayload, db: 
     return schedule
 
 
+@scheduler_router.post("/{schedule_id}/approve", tags=["Scheduler"], response_model=ScheduleResponse)
+async def approve_schedule_draft(schedule_id: int, payload: ApproveDraftPayload | None = None, db: AsyncSession = Depends(get_db),
+                                current_user: User = Depends(get_current_user)):
+    scheduler_service = SchedulerService(db)
+    post_text = payload.post_text if payload else None
+    schedule = await scheduler_service.approve_and_publish_draft(
+        schedule_id=schedule_id,
+        user_id=current_user.id,
+        post_text=post_text
+    )
+    return schedule
+
+
+@scheduler_router.post("/{schedule_id}/reject", tags=["Scheduler"], response_model=ScheduleResponse)
+async def reject_schedule_draft(schedule_id: int, db: AsyncSession = Depends(get_db),
+                               current_user: User = Depends(get_current_user)):
+    scheduler_service = SchedulerService(db)
+    schedule = await scheduler_service.reject_draft(
+        schedule_id=schedule_id,
+        user_id=current_user.id
+    )
+    return schedule

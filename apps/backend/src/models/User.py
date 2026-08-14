@@ -24,5 +24,9 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(50), default="user", server_default="user", nullable=False)
     tier: Mapped[str] = mapped_column(String(50), default="free", server_default="free", nullable=False)
     is_verified: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
+    auto_post: Mapped[bool] = mapped_column(default=True, server_default="true", nullable=False)
+    email_notifications: Mapped[bool] = mapped_column(default=True, server_default="true", nullable=False)
+
+
 
 

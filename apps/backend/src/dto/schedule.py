@@ -14,6 +14,7 @@ class CreateSchedulePayload(BaseModel):
     max_runs: int = 1
     scheduled_at: datetime
     prompt: str | None = None
+    auto_post: bool | None = None
 
 
 class UpdateSchedulePayload(BaseModel):
@@ -24,7 +25,11 @@ class UpdateSchedulePayload(BaseModel):
     scheduled_at: datetime | None = None
     prompt: str | None = None
     reset_runs_completed: bool = False
+    auto_post: bool | None = None
 
+
+class ApproveDraftPayload(BaseModel):
+    post_text: str | None = None
 
 
 # 1. Define an Enum for your status so your frontend gets strict typing
@@ -34,7 +39,7 @@ class ScheduleStatus(str, Enum):
     FAILED = "FAILED"
     PENDING = "PENDING"
     FINISHED = "FINISHED"
-    # Add any other statuses you might use (e.g., CANCELED, DRAFT)
+    NEEDS_APPROVAL = "NEEDS_APPROVAL"
 
 
 # 2. The main Response DTO
@@ -54,6 +59,10 @@ class ScheduleResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     prompt: str | None
+    auto_post: bool = True
+    draft_post_text: str | None = None
+    draft_image_url: str | None = None
+
 
     # 3. This config tells Pydantic to read data directly from the SQLAlchemy model
     model_config = ConfigDict(from_attributes=True)

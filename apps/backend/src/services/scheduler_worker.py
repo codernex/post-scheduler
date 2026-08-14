@@ -253,19 +253,99 @@ async def _run_posting_logic(scheduler: Scheduler, db: AsyncSession):
 async def mark_and_increment_schedule(db: AsyncSession, execution: TaskExecution):
     """
     After a task execution fires:
-    - Runs the platform posting logic.
-    - Increments runs_completed on the parent Scheduler.
-    - If more runs remain, advances scheduled_at and resets status to PENDING.
-    - Otherwise marks the Scheduler as FINISHED.
-    - Marks the TaskExecution as 'completed'.
+    - If auto_post is True: Runs the platform posting logic, increments runs_completed, advances schedule, completes execution.
+    - If auto_post is False: Generates post draft, saves to draft_post_text/draft_image_url, sets scheduler status to NEEDS_APPROVAL for user review.
     If anything fails, the execution is marked 'failed' and the scheduler
     is reset to PENDING so it can be retried next cycle.
     """
     scheduler = execution.scheduler
 
     try:
+        from models import User
+        user = await db.get(User, scheduler.user_id)
+        should_auto_post = bool(scheduler.auto_post and (user.auto_post if user else True))
+
+        if not should_auto_post:
+            from agent.agent import PostingAgent
+            platform_result = await db.execute(
+                select(SocialMedia).where(SocialMedia.id == scheduler.social_media_id)
+            )
+            platform_model = platform_result.scalar_one_or_none()
+            platform_name = platform_model.name if platform_model else "Unknown"
+
+            agent = PostingAgent(
+                scheduler_id=scheduler.id,
+                prompt=scheduler.prompt,
+                platform=platform_name,
+            )
+
+            post_result = await agent.generate_post()
+            if isinstance(post_result, dict):
+                post_text = str(post_result.get("post_text", ""))
+                image_url = post_result.get("image_url")
+            else:
+                post_text = str(post_result)
+                image_url = getattr(post_result, "image_url", None)
+
+            scheduler.draft_post_text = post_text
+            scheduler.draft_image_url = image_url
+            scheduler.status = "NEEDS_APPROVAL"
+
+            from models import SchedulerLog
+            draft_log = SchedulerLog(
+                scheduler_id=scheduler.id,
+                post_content=f"AI draft generated: {post_text}",
+                status="INFO",
+                detail="Auto-post is disabled. Generated post draft requires user review and approval before publishing."
+            )
+            db.add(draft_log)
+
+            execution.status = "completed"
+            execution.completed_at = datetime.now()
+            await db.commit()
+
+            # Send email notification if user enabled notifications
+            try:
+                from models import User
+                user = await db.get(User, scheduler.user_id)
+                if user and getattr(user, "email_notifications", True):
+                    from utils.smtp import send_smtp_email
+                    from core.config import settings
+                    review_url = f"{settings.FRONTEND_URL}/dashboard/schedules"
+                    subject = "Your AI Post Draft is Ready for Review"
+                    text_body = (
+                        f"Hi {user.username},\n\n"
+                        f"Your AI agent has generated a new post draft for Schedule #{scheduler.id} on {platform_name}.\n\n"
+                        f"Draft Content:\n\"{post_text}\"\n\n"
+                        f"Please review, edit, and publish your post here:\n{review_url}\n\n"
+                        f"You can manage your notification preferences in Account Settings."
+                    )
+                    html_body = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: sans-serif; background-color: #0f172a; color: #f8fafc; padding: 30px;">
+  <div style="max-width: 500px; margin: 0 auto; background: #1e293b; padding: 24px; border-radius: 10px; border: 1px solid #334155;">
+    <h2 style="color: #818cf8; margin-top: 0;">AI Post Draft Ready</h2>
+    <p>Hi <strong>{user.username}</strong>,</p>
+    <p>Your AI agent generated a new post draft for your <strong>{platform_name}</strong> schedule (#{scheduler.id}).</p>
+    <div style="background: #0f172a; padding: 14px; border-radius: 6px; border-left: 4px solid #6366f1; margin: 16px 0; font-style: italic; color: #e2e8f0;">
+      "{post_text}"
+    </div>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="{review_url}" style="background-color: #4f46e5; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Review & Edit Post</a>
+    </div>
+    <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-bottom: 0;">You can manage your notification settings anytime in your account dashboard.</p>
+  </div>
+</body>
+</html>"""
+                    send_smtp_email(to_email=user.email, subject=subject, body=text_body, html_body=html_body)
+            except Exception as mail_err:
+                logger.error(f"[worker] Failed to send draft notification email: {mail_err}")
+
+            return
+
         # Do the actual work first — before touching any counters.
-        post= await _run_posting_logic(scheduler, db)
+        post = await _run_posting_logic(scheduler, db)
 
         # Advance the run counter
         scheduler.runs_completed += 1
@@ -302,6 +382,7 @@ async def mark_and_increment_schedule(db: AsyncSession, execution: TaskExecution
         execution.completed_at = datetime.now()
 
         await db.commit()
+
 
     except Exception as e:
         logger.error(f"[worker] mark_and_increment_schedule failed for execution {execution.id}: {e}")
